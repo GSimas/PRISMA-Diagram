@@ -27,8 +27,17 @@ describe('componentes essenciais', () => {
     render(<PrismaDiagram project={project} locale="pt-BR" selected="databases" onSelect={(field) => { selected = field; }} />);
     const nodes = screen.getAllByRole('button');
     expect(screen.getByRole('group', { name: new RegExp(project.title) })).toBeInTheDocument();
+    expect(document.querySelector('.prisma-svg')).toHaveAttribute('data-style', 'classic');
     fireEvent.keyDown(nodes[0], { key: 'Enter' });
     expect(selected).not.toBe('');
+  });
+
+  it('renderiza a alternativa editorial moderna quando selecionada', () => {
+    const project = createProject({ example: true });
+    project.presentation.diagramStyle = 'modern';
+    render(<PrismaDiagram project={project} locale="pt-BR" selected="databases" onSelect={() => undefined} />);
+    expect(document.querySelector('.prisma-svg')).toHaveAttribute('data-style', 'modern');
+    expect(document.querySelector('.classic-chrome')).not.toBeInTheDocument();
   });
 
   it('expõe todos os formatos de exportação', () => {

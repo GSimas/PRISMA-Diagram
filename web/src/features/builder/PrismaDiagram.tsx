@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import type { CountKey, Locale, PrismaProject } from '../../domain/types';
 import { describeFlow } from '../../domain/calculations';
-import { getDiagramNodes } from './diagramModel';
+import { getDiagramChrome, getDiagramConnections, getDiagramNodes } from './diagramModel';
 
 interface Props {
   project: PrismaProject;
@@ -14,19 +14,21 @@ interface Props {
 }
 
 export function PrismaDiagram({ project, locale, selected, onSelect, zoom = 1 }: Props) {
-  const nodes = useMemo(() => getDiagramNodes(project, locale), [project, locale]);
-  const main = nodes.filter((node) => node.x < 500);
-  const sides = nodes.filter((node) => node.x >= 500);
-  const height = Math.max(...nodes.map((node) => node.y + node.height), 700) + 50;
+  const style = project.presentation.diagramStyle ?? 'classic';
+  const nodes = useMemo(() => getDiagramNodes(project, locale, style), [project, locale, style]);
+  const chrome = useMemo(() => getDiagramChrome(project, locale, style), [project, locale, style]);
+  const connections = useMemo(() => getDiagramConnections(nodes, style), [nodes, style]);
+  const lastNodeBottom = Math.max(...nodes.map((node) => node.y + node.height));
 
   return (
     <div className="diagram-scroller" tabIndex={0} aria-label="Área panorâmica do diagrama">
       <svg
         id="prisma-diagram-svg"
-        className="prisma-svg"
-        viewBox={`0 0 880 ${height}`}
-        width={880 * zoom}
-        height={height * zoom}
+        className={`prisma-svg prisma-svg-${style}`}
+        data-style={style}
+        viewBox={`0 0 ${chrome.width} ${chrome.height}`}
+        width={chrome.width * zoom}
+        height={chrome.height * zoom}
         role="group"
         aria-labelledby="diagram-title diagram-description"
       >
@@ -37,19 +39,24 @@ export function PrismaDiagram({ project, locale, selected, onSelect, zoom = 1 }:
             <path d="M0,0 L0,6 L6,3 z" className="diagram-arrow-head" />
           </marker>
         </defs>
+        {style === 'classic' && (
+          <g className="classic-chrome" aria-hidden="true">
+            <rect className="classic-source-header main-source" x="70" y="30" width="557" height="31" rx="15.5" />
+            <text className="classic-source-label" x="348.5" y="50">{chrome.mainHeader}</text>
+            {chrome.hasOtherSources && <>
+              <rect className="classic-source-header other-source" x="662" y="30" width="558" height="31" rx="15.5" />
+              <text className="classic-source-label" x="941" y="50">{chrome.otherHeader}</text>
+            </>}
+            <rect className="classic-stage-band" x="17" y={chrome.identificationTop} width="31" height={chrome.screeningTop - chrome.identificationTop - 54} rx="11" />
+            <text className="classic-stage-label" transform={`translate(36 ${chrome.identificationTop + (chrome.screeningTop - chrome.identificationTop - 54) / 2}) rotate(-90)`}>{chrome.identification}</text>
+            <rect className="classic-stage-band" x="17" y={chrome.screeningTop} width="31" height={chrome.includedTop - chrome.screeningTop - 18} rx="11" />
+            <text className="classic-stage-label" transform={`translate(36 ${chrome.screeningTop + (chrome.includedTop - chrome.screeningTop - 18) / 2}) rotate(-90)`}>{chrome.screening}</text>
+            <rect className="classic-stage-band" x="17" y={chrome.includedTop} width="31" height={lastNodeBottom - chrome.includedTop + 15} rx="11" />
+            <text className="classic-stage-label" transform={`translate(36 ${chrome.includedTop + (lastNodeBottom - chrome.includedTop + 15) / 2}) rotate(-90)`}>{chrome.included}</text>
+          </g>
+        )}
         <g aria-hidden="true" className="diagram-connections">
-          {main.slice(0, -1).map((node, index) => {
-            const next = main[index + 1];
-            return <line key={node.id} x1={node.x + node.width / 2} y1={node.y + node.height} x2={next.x + next.width / 2} y2={next.y - 7} markerEnd="url(#arrowhead)" />;
-          })}
-          {sides.map((node) => {
-            const source = main.find((candidate) => candidate.y === node.y);
-            if (node.id === 'identified-other') {
-              const target = main.find((candidate) => candidate.id === 'removed');
-              return target ? <path key={node.id} d={`M ${node.x + node.width / 2} ${node.y + node.height} V ${target.y - 22} H ${target.x + target.width / 2} V ${target.y - 7}`} markerEnd="url(#arrowhead)" /> : null;
-            }
-            return source ? <line key={node.id} x1={source.x + source.width} y1={source.y + source.height / 2} x2={node.x - 7} y2={node.y + node.height / 2} markerEnd="url(#arrowhead)" /> : null;
-          })}
+          {connections.map((connection) => <path key={connection.id} d={connection.d} markerEnd="url(#arrowhead)" />)}
         </g>
         <g>
           {nodes.map((node) => (
@@ -67,16 +74,22 @@ export function PrismaDiagram({ project, locale, selected, onSelect, zoom = 1 }:
                 }
               }}
             >
-              <rect x={node.x} y={node.y} width={node.width} height={node.height} rx="2" />
+              <rect x={node.x} y={node.y} width={node.width} height={node.height} rx={style === 'classic' ? 0 : 2} />
               {node.lines.map((line, index) => (
-                <text key={line} x={node.x + 18} y={node.y + 24 + index * 20} className={index === 0 ? 'node-heading' : 'node-line'}>
+                <text
+                  key={`${line}-${index}`}
+                  x={style === 'classic' ? node.x + node.width / 2 : node.x + 18}
+                  y={style === 'classic' ? node.y + node.height / 2 - ((node.lines.length - 1) * 15) / 2 + index * 15 + 4 : node.y + 24 + index * 20}
+                  textAnchor={style === 'classic' ? 'middle' : undefined}
+                  className={index === 0 ? 'node-heading' : 'node-line'}
+                >
                   {line}
                 </text>
               ))}
             </g>
           ))}
         </g>
-        <text x="22" y={height - 16} className="diagram-credit">Baseado no PRISMA 2020 · CC BY 4.0 · ferramenta independente</text>
+        <text x={style === 'classic' ? 70 : 22} y={chrome.height - 16} className="diagram-credit">{chrome.credit}</text>
       </svg>
     </div>
   );

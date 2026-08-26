@@ -40,11 +40,13 @@
 .reasons-editor > div button { border: 1px solid var(--line); background: transparent; color: var(--red); }
 
 .diagram-panel { min-width: 0; overflow: hidden; background: color-mix(in srgb, var(--surface-2) 50%, var(--paper)); }
-.canvas-label { display: flex; align-items: center; justify-content: space-between; padding: .55rem .8rem; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--muted); font: .58rem var(--font-mono); letter-spacing: .08em; }
-.canvas-label select { min-width: 165px; padding: .35rem; font-size: .65rem; }
+.canvas-label { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .55rem .8rem; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--muted); font: .58rem var(--font-mono); letter-spacing: .08em; }
+.canvas-controls { display: flex; align-items: end; gap: .65rem; }
+.canvas-controls label { gap: .25rem; color: var(--muted); font: .54rem var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
+.canvas-label select { min-width: 150px; padding: .35rem; font-size: .65rem; text-transform: none; }
 .diagram-scroller { width: 100%; height: calc(100vh - 286px); overflow: auto; padding: 1rem; touch-action: pan-x pan-y; }
 .prisma-svg { display: block; margin: auto; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
-.diagram-connections line, .diagram-connections path { fill: none; stroke: var(--line-strong); stroke-width: 1.5; }
+.diagram-connections path { fill: none; stroke: var(--line-strong); stroke-width: 1.5; }
 .diagram-arrow-head { fill: var(--line-strong); }
 .diagram-node { cursor: pointer; }
 .diagram-node rect { fill: var(--surface); stroke: var(--blue); stroke-width: 1.5; transition: stroke .16s var(--ease), fill .16s var(--ease); }
@@ -55,6 +57,22 @@
 .node-heading { fill: var(--ink); font: 700 14px var(--font-sans); }
 .node-line { fill: var(--muted); font: 12px var(--font-sans); }
 .diagram-credit { fill: var(--muted); font: 10px var(--font-sans); }
+.prisma-svg-classic { background: #fff; border-color: #d9d9d9; color-scheme: light; }
+.prisma-svg-classic .classic-source-header.main-source { fill: #ffbf24; }
+.prisma-svg-classic .classic-source-header.other-source { fill: #d9d9d9; }
+.prisma-svg-classic .classic-source-label { fill: #000; font: 12px Arial, 'Noto Sans SC', sans-serif; text-anchor: middle; }
+.prisma-svg-classic .classic-stage-band { fill: #b8d2f2; }
+.prisma-svg-classic .classic-stage-label { fill: #000; font: 12px Arial, 'Noto Sans SC', sans-serif; text-anchor: middle; dominant-baseline: central; }
+.prisma-svg-classic .diagram-connections path { stroke: #000; stroke-width: 1.1; }
+.prisma-svg-classic .diagram-arrow-head { fill: #000; }
+.prisma-svg-classic .diagram-node rect { fill: #fff; stroke: #000; stroke-width: 1; }
+.prisma-svg-classic .diagram-node.other rect { fill: #ddd; stroke: none; }
+.prisma-svg-classic .diagram-node:hover rect, .prisma-svg-classic .diagram-node:focus rect { fill: #fff4d6; stroke: #aa6900; stroke-width: 2; }
+.prisma-svg-classic .diagram-node.other:hover rect, .prisma-svg-classic .diagram-node.other:focus rect { fill: #e8d7ad; }
+.prisma-svg-classic .diagram-node.selected rect { stroke: #aa6900; stroke-width: 2.5; }
+.prisma-svg-classic .node-heading, .prisma-svg-classic .node-line { fill: #000; font: 12px Arial, 'Noto Sans SC', sans-serif; }
+.prisma-svg-classic .node-heading { font-weight: 400; }
+.prisma-svg-classic .diagram-credit { fill: #505050; font: 10px Arial, 'Noto Sans SC', sans-serif; }
 .diagram-alternative { margin: 0 1rem 1rem; border: 1px solid var(--line); background: var(--surface); }
 .diagram-alternative summary { padding: .75rem; cursor: pointer; font-size: .72rem; font-weight: 750; }
 .diagram-alternative table { margin: .75rem; width: calc(100% - 1.5rem); }
@@ -120,6 +138,10 @@
   .diagram-panel { order: 1; min-height: 72vh; }
   .context-panel { order: 3; display: block; }
   .diagram-scroller { height: 65vh; }
+  .canvas-label { align-items: flex-start; flex-direction: column; }
+  .canvas-controls { width: 100%; flex-wrap: wrap; }
+  .canvas-controls label { flex: 1 1 160px; }
+  .canvas-controls select { width: 100%; }
   .module-header { flex-direction: column; }
   .checklist-fields { grid-template-columns: 1fr 1fr; }
   .export-grid { grid-template-columns: repeat(2, 1fr); }

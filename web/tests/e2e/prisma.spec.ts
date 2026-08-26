@@ -23,8 +23,15 @@ test('cria os quatro modelos, valida inconsistência e persiste o projeto', asyn
   await page.getByLabel('Utiliza outras fontes').check();
   await expect(page.getByLabel('Registros ou relatos em sites')).toBeVisible();
   await expect(page.getByText('Salvo localmente')).toBeVisible({ timeout: 5000 });
+  const visualStyle = page.getByRole('combobox', { name: 'Visual do diagrama' });
+  await expect(visualStyle).toHaveValue('classic');
+  await expect(page.locator('.prisma-svg')).toHaveAttribute('data-style', 'classic');
+  await visualStyle.selectOption('modern');
+  await expect(page.locator('.prisma-svg')).toHaveAttribute('data-style', 'modern');
+  await expect(page.getByText('Salvo localmente')).toBeVisible({ timeout: 5000 });
   await page.reload();
   await expect(databases).toHaveValue('10');
+  await expect(page.getByRole('combobox', { name: 'Visual do diagrama' })).toHaveValue('modern');
 });
 
 test('troca idioma, tema, contraste e navega por teclado', async ({ page }) => {

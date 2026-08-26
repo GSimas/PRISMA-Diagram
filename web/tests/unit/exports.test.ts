@@ -10,6 +10,8 @@ describe('exportadores', () => {
     expect(svg).toContain('role="img"');
     expect(svg).toContain('Teste &lt;seguro&gt;');
     expect(svg).not.toContain('<title id="title">Teste <seguro>');
+    expect(svg).toContain('Identificação de novos estudos em bases de dados e registros');
+    expect(svg).toContain('#ffbf24');
   });
 
   it('gera CSV tabular com BOM', () => {

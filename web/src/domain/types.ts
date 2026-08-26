@@ -72,6 +72,7 @@ export interface HistoryEntry {
 
 export interface PresentationPreferences {
   mode: 'prisma' | 'presentation';
+  diagramStyle: 'classic' | 'modern';
   density: 'compact' | 'comfortable';
   orientation: 'portrait' | 'landscape';
   accent: string;

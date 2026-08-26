@@ -27,4 +27,4 @@ O service worker armazena o shell da aplicação e usa estratégia network-first
 
 ## Decisões de design
 
-O visual combina azul profundo, âmbar e fundos de papel, com tipografia editorial, grade técnica e cartões de baixa elevação. O modo PRISMA protege a topologia; o modo apresentação permite preferências visuais sem alterar a semântica. A alternativa textual/tabular evita dependência exclusiva de SVG.
+O visual da aplicação combina azul profundo, âmbar e fundos de papel, com tipografia editorial, grade técnica e cartões de baixa elevação. O diagrama oferece dois estilos derivados do mesmo modelo semântico: `classic`, padrão e próximo da linguagem gráfica dos templates PRISMA 2020, e `modern`, com o tratamento editorial autoral. O modo PRISMA protege a topologia; o modo apresentação permite preferências visuais sem alterar a semântica. A alternativa textual/tabular evita dependência exclusiva de SVG.

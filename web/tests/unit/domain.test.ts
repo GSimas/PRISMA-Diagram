@@ -49,6 +49,11 @@ describe('motor de domínio', () => {
     expect(migrated.title).toBe('Legado');
     expect(migrated.counts.databases).toBe(3);
     expect(migrated.checklist).toHaveLength(27);
+    expect(migrated.presentation.diagramStyle).toBe('classic');
+  });
+
+  it('usa o diagrama PRISMA clássico como visual padrão', () => {
+    expect(createProject().presentation.diagramStyle).toBe('classic');
   });
 
   it('detecta locale exato, base e fallback', () => {

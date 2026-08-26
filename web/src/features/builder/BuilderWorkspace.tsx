@@ -190,7 +190,13 @@ export function BuilderWorkspace() {
           </aside>
 
           <section className="diagram-panel" aria-label="Editor visual do diagrama">
-            <div className="canvas-label"><span>MODELO PROTEGIDO</span><label><select value={project.presentation.mode} onChange={(event) => patchProject({ presentation: { ...project.presentation, mode: event.target.value as 'prisma' | 'presentation' } })}><option value="prisma">{t('prismaMode')}</option><option value="presentation">{t('presentationMode')}</option></select></label></div>
+            <div className="canvas-label">
+              <span>PRISMA 2020 · SVG</span>
+              <div className="canvas-controls">
+                <label>{t('visualStyle')}<select aria-label={t('visualStyle')} value={project.presentation.diagramStyle ?? 'classic'} onChange={(event) => patchProject({ presentation: { ...project.presentation, diagramStyle: event.target.value as 'classic' | 'modern' } }, 'Visual do diagrama alterado')}><option value="classic">{t('classicStyle')}</option><option value="modern">{t('modernStyle')}</option></select></label>
+                <label>{t('structureMode')}<select aria-label={t('structureMode')} value={project.presentation.mode} onChange={(event) => patchProject({ presentation: { ...project.presentation, mode: event.target.value as 'prisma' | 'presentation' } })}><option value="prisma">{t('prismaMode')}</option><option value="presentation">{t('presentationMode')}</option></select></label>
+              </div>
+            </div>
             <PrismaDiagram project={project} locale={locale} selected={selected} onSelect={setSelected} zoom={zoom} />
             <details className="diagram-alternative">
               <summary>Alternativa textual e tabular</summary>

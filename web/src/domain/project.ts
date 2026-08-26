@@ -51,7 +51,7 @@ export function createProject(options: {
     provenance: {},
     checklist: createChecklist(),
     presentation: {
-      mode: 'prisma', density: 'comfortable', orientation: 'portrait',
+      mode: 'prisma', diagramStyle: 'classic', density: 'comfortable', orientation: 'portrait',
       accent: '#c97a16', showTitle: true, showOptionalDetails: true,
     },
     history: [],

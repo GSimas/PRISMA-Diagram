@@ -29,7 +29,7 @@ export const projectSchema = z.object({
   exclusionReasons: z.array(z.object({ id: z.string(), label: z.string(), count: z.number().int().nonnegative() })),
   provenance: z.record(z.string(), z.object({ note: z.string(), responsible: z.string(), date: z.string(), url: z.string(), repositoryRef: z.string() })),
   checklist: z.array(z.object({ item: z.number().int().min(1).max(27), status: z.enum(['not-started', 'in-progress', 'complete', 'not-applicable']), note: z.string(), location: z.string(), page: z.string(), section: z.string(), url: z.string(), reviewedAt: z.string() })),
-  presentation: z.object({ mode: z.enum(['prisma', 'presentation']), density: z.enum(['compact', 'comfortable']), orientation: z.enum(['portrait', 'landscape']), accent: z.string(), showTitle: z.boolean(), showOptionalDetails: z.boolean() }),
+  presentation: z.object({ mode: z.enum(['prisma', 'presentation']), diagramStyle: z.enum(['classic', 'modern']).default('classic'), density: z.enum(['compact', 'comfortable']), orientation: z.enum(['portrait', 'landscape']), accent: z.string(), showTitle: z.boolean(), showOptionalDetails: z.boolean() }),
   history: z.array(z.object({ id: z.string(), at: z.string(), action: z.string(), field: z.enum(countKeys).optional(), previous: z.number().nullable().optional(), next: z.number().nullable().optional() })),
   createdAt: z.string(),
   updatedAt: z.string(),

@@ -4,36 +4,26 @@ import type { Locale, PrismaProject } from '../../domain/types';
 import { calculateProject, describeFlow } from '../../domain/calculations';
 import { validateProject } from '../../domain/validation';
 import { checklistTitles } from '../../domain/checklist';
-import { getDiagramNodes } from '../builder/diagramModel';
+import { getDiagramChrome, getDiagramConnections, getDiagramNodes } from '../builder/diagramModel';
 import { downloadBlob, safeFileName, serializeProject } from '../../storage/serialization';
 
 const xml = (value: string) => value.replace(/[<>&'"]/g, (character) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[character] ?? character);
 const html = xml;
 
 export function generateSvg(project: PrismaProject, locale: Locale): string {
-  const nodes = getDiagramNodes(project, locale);
-  const main = nodes.filter((node) => node.x < 500);
-  const sides = nodes.filter((node) => node.x >= 500);
-  const height = Math.max(...nodes.map((node) => node.y + node.height)) + 55;
-  const connections = [
-    ...main.slice(0, -1).map((node, index) => {
-      const next = main[index + 1];
-      return `<line x1="${node.x + node.width / 2}" y1="${node.y + node.height}" x2="${next.x + next.width / 2}" y2="${next.y - 7}"/>`;
-    }),
-    ...sides.map((node) => {
-      const source = main.find((candidate) => candidate.y === node.y);
-      if (node.id === 'identified-other') {
-        const target = main.find((candidate) => candidate.id === 'removed');
-        return target ? `<path d="M ${node.x + node.width / 2} ${node.y + node.height} V ${target.y - 22} H ${target.x + target.width / 2} V ${target.y - 7}"/>` : '';
-      }
-      return source ? `<line x1="${source.x + source.width}" y1="${source.y + source.height / 2}" x2="${node.x - 7}" y2="${node.y + node.height / 2}"/>` : '';
-    }),
-  ].join('');
+  const style = project.presentation.diagramStyle ?? 'classic';
+  const nodes = getDiagramNodes(project, locale, style);
+  const chrome = getDiagramChrome(project, locale, style);
+  const connections = getDiagramConnections(nodes, style).map((connection) => `<path d="${connection.d}"/>`).join('');
+  const lastNodeBottom = Math.max(...nodes.map((node) => node.y + node.height));
+  const classicChrome = style === 'classic' ? `<g aria-hidden="true"><rect class="source main" x="70" y="30" width="557" height="31" rx="15.5"/><text class="source-label" x="348.5" y="50">${xml(chrome.mainHeader)}</text>${chrome.hasOtherSources ? `<rect class="source other" x="662" y="30" width="558" height="31" rx="15.5"/><text class="source-label" x="941" y="50">${xml(chrome.otherHeader)}</text>` : ''}<rect class="stage" x="17" y="${chrome.identificationTop}" width="31" height="${chrome.screeningTop - chrome.identificationTop - 54}" rx="11"/><text class="stage-label" transform="translate(36 ${chrome.identificationTop + (chrome.screeningTop - chrome.identificationTop - 54) / 2}) rotate(-90)">${xml(chrome.identification)}</text><rect class="stage" x="17" y="${chrome.screeningTop}" width="31" height="${chrome.includedTop - chrome.screeningTop - 18}" rx="11"/><text class="stage-label" transform="translate(36 ${chrome.screeningTop + (chrome.includedTop - chrome.screeningTop - 18) / 2}) rotate(-90)">${xml(chrome.screening)}</text><rect class="stage" x="17" y="${chrome.includedTop}" width="31" height="${lastNodeBottom - chrome.includedTop + 15}" rx="11"/><text class="stage-label" transform="translate(36 ${chrome.includedTop + (lastNodeBottom - chrome.includedTop + 15) / 2}) rotate(-90)">${xml(chrome.included)}</text></g>` : '';
   const nodeMarkup = nodes.map((node) => {
-    const text = node.lines.map((line, index) => `<text x="${node.x + 18}" y="${node.y + 25 + index * 20}" class="${index === 0 ? 'heading' : 'line'}">${xml(line)}</text>`).join('');
-    return `<g id="${node.id}" tabindex="0" role="link"><title>${xml(node.lines.join('. '))}</title><rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" rx="2"/>${text}</g>`;
+    const text = node.lines.map((line, index) => `<text x="${style === 'classic' ? node.x + node.width / 2 : node.x + 18}" y="${style === 'classic' ? node.y + node.height / 2 - ((node.lines.length - 1) * 15) / 2 + index * 15 + 4 : node.y + 25 + index * 20}"${style === 'classic' ? ' text-anchor="middle"' : ''} class="${index === 0 ? 'heading' : 'line'}">${xml(line)}</text>`).join('');
+    return `<g id="${node.id}" class="node ${node.kind ?? ''}" tabindex="0" role="link"><title>${xml(node.lines.join('. '))}</title><rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" rx="${style === 'classic' ? 0 : 2}"/>${text}</g>`;
   }).join('');
-  return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="880" height="${height}" viewBox="0 0 880 ${height}" role="img" aria-labelledby="title desc"><title id="title">${xml(project.title)}</title><desc id="desc">${xml(describeFlow(project))}</desc><defs><marker id="a" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#17345d"/></marker></defs><style>svg{background:#fff;font-family:Arial,'Noto Sans SC',sans-serif}g rect{fill:#fff;stroke:#17345d;stroke-width:1.5}.heading{font-size:14px;font-weight:700;fill:#10233f}.line{font-size:13px;fill:#31445e}line,path{fill:none;stroke:#17345d;stroke-width:1.5;marker-end:url(#a)}g[role=link]:focus rect{stroke:#c97a16;stroke-width:3}.credit{font-size:10px;fill:#59697d}</style><g>${connections}</g><g>${nodeMarkup}</g><text x="22" y="${height - 16}" class="credit">Baseado no PRISMA 2020 · CC BY 4.0 · ferramenta independente</text></svg>`;
+  const classicCss = `.source.main{fill:#ffbf24;stroke:none}.source.other{fill:#d9d9d9;stroke:none}.source-label,.stage-label{fill:#000;font:12px Arial,'Noto Sans SC',sans-serif;text-anchor:middle}.stage-label{dominant-baseline:central}.stage{fill:#b8d2f2;stroke:none}.node rect{fill:#fff;stroke:#000;stroke-width:1}.node.other rect{fill:#ddd;stroke:none}.heading,.line{font:12px Arial,'Noto Sans SC',sans-serif;fill:#000}.heading{font-weight:400}path{stroke:#000;stroke-width:1.1}`;
+  const modernCss = `.node rect{fill:#fff;stroke:#17345d;stroke-width:1.5}.heading{font-size:14px;font-weight:700;fill:#10233f}.line{font-size:13px;fill:#31445e}path{stroke:#17345d;stroke-width:1.5}`;
+  return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="${chrome.width}" height="${chrome.height}" viewBox="0 0 ${chrome.width} ${chrome.height}" role="img" aria-labelledby="title desc"><title id="title">${xml(project.title)}</title><desc id="desc">${xml(describeFlow(project))}</desc><defs><marker id="a" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="${style === 'classic' ? '#000' : '#17345d'}"/></marker></defs><style>svg{background:#fff;font-family:Arial,'Noto Sans SC',sans-serif}${style === 'classic' ? classicCss : modernCss}path{fill:none;marker-end:url(#a)}g[role=link]:focus rect{stroke:#aa6900;stroke-width:3}.credit{font-size:10px;fill:#59697d}</style>${classicChrome}<g>${connections}</g><g>${nodeMarkup}</g><text x="${style === 'classic' ? 70 : 22}" y="${chrome.height - 16}" class="credit">${xml(chrome.credit)}</text></svg>`;
 }
 
 export async function generatePng(project: PrismaProject, locale: Locale, scale = 2): Promise<Blob> {
@@ -58,9 +48,11 @@ export async function generatePng(project: PrismaProject, locale: Locale, scale 
 export async function generatePdf(project: PrismaProject, locale: Locale): Promise<Blob> {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const nodes = getDiagramNodes(project, locale);
+  const style = project.presentation.diagramStyle ?? 'classic';
+  const nodes = getDiagramNodes(project, locale, style);
+  const chrome = getDiagramChrome(project, locale, style);
   const maxHeight = Math.max(...nodes.map((node) => node.y + node.height)) + 40;
-  const scale = Math.min(180 / 880, 252 / maxHeight);
+  const scale = Math.min(180 / chrome.width, 252 / maxHeight);
   const ox = 15;
   const oy = 25;
   doc.setTextColor(16, 35, 63);

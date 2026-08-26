@@ -9,6 +9,7 @@ Aplicação web local-first para criar, revisar, validar e exportar diagramas de
 - Distinção explícita entre registros, relatos e estudos.
 - Checklist PRISMA 2020 com 27 itens, localização no manuscrito e progresso por seção.
 - Interface e diagramas em português do Brasil, inglês, italiano, francês, alemão e chinês simplificado.
+- Diagrama com visual clássico PRISMA como padrão, inspirado nos templates oficiais, e alternativa editorial moderna selecionável e persistente por projeto.
 - Projetos persistidos no IndexedDB, sem conta e sem envio de dados científicos.
 - Importação de backup JSON e tabelas CSV/XLSX com prévia e mapeamento.
 - Exportação em JSON, CSV, XLSX, SVG, PNG 2×, PDF vetorial, HTML interativo, relatório HTML e pacote ZIP.

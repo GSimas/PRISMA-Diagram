@@ -2,6 +2,7 @@
 
 import Dexie, { type Table } from 'dexie';
 import type { PrismaProject } from '../domain/types';
+import { migrateProject } from '../domain/schema';
 
 class PrismaDiagramDatabase extends Dexie {
   projects!: Table<PrismaProject, string>;
@@ -21,7 +22,7 @@ const getDatabase = () => {
 };
 
 export async function listProjects(): Promise<PrismaProject[]> {
-  return getDatabase().projects.orderBy('updatedAt').reverse().toArray();
+  return (await getDatabase().projects.orderBy('updatedAt').reverse().toArray()).map(migrateProject);
 }
 
 export async function saveProject(project: PrismaProject): Promise<void> {
@@ -29,7 +30,8 @@ export async function saveProject(project: PrismaProject): Promise<void> {
 }
 
 export async function getProject(id: string): Promise<PrismaProject | undefined> {
-  return getDatabase().projects.get(id);
+  const project = await getDatabase().projects.get(id);
+  return project ? migrateProject(project) : undefined;
 }
 
 export async function deleteProject(id: string): Promise<void> {
