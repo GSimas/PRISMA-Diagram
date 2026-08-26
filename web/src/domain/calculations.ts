@@ -53,7 +53,7 @@ export function calculateProject(project: PrismaProject): CalculatedCounts {
     origins.previousReports = 'not-applicable';
   }
   if (!hasOtherSources(project.model)) {
-    (['websites', 'organisations', 'citationSearching', 'otherSources'] as CountKey[]).forEach((key) => {
+    (['websites', 'organisations', 'citationSearching', 'otherSources', 'otherReportsSought', 'otherReportsNotRetrieved', 'otherReportsAssessed', 'otherReportsExcluded'] as CountKey[]).forEach((key) => {
       values[key] = null;
       origins[key] = 'not-applicable';
     });

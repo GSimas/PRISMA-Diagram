@@ -25,7 +25,7 @@ describe('componentes essenciais', () => {
     const project = createProject({ example: true });
     let selected = '';
     render(<PrismaDiagram project={project} locale="pt-BR" selected="databases" onSelect={(field) => { selected = field; }} />);
-    const nodes = screen.getAllByRole('button');
+    const nodes = screen.getAllByRole('button', { name: /Selecionar para editar detalhes/ });
     expect(screen.getByRole('group', { name: new RegExp(project.title) })).toBeInTheDocument();
     expect(document.querySelector('.prisma-svg')).toHaveAttribute('data-style', 'classic');
     fireEvent.keyDown(nodes[0], { key: 'Enter' });

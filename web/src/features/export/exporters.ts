@@ -22,7 +22,7 @@ export function generateSvg(project: PrismaProject, locale: Locale): string {
     return `<g id="${node.id}" class="node ${node.kind ?? ''}" tabindex="0" role="link"><title>${xml(node.lines.join('. '))}</title><rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" rx="${style === 'classic' ? 0 : 2}"/>${text}</g>`;
   }).join('');
   const classicCss = `.source.main{fill:#ffbf24;stroke:none}.source.other{fill:#d9d9d9;stroke:none}.source-label,.stage-label{fill:#000;font:12px Arial,'Noto Sans SC',sans-serif;text-anchor:middle}.stage-label{dominant-baseline:central}.stage{fill:#b8d2f2;stroke:none}.node rect{fill:#fff;stroke:#000;stroke-width:1}.node.other rect{fill:#ddd;stroke:none}.heading,.line{font:12px Arial,'Noto Sans SC',sans-serif;fill:#000}.heading{font-weight:400}path{stroke:#000;stroke-width:1.1}`;
-  const modernCss = `.node rect{fill:#fff;stroke:#17345d;stroke-width:1.5}.heading{font-size:14px;font-weight:700;fill:#10233f}.line{font-size:13px;fill:#31445e}path{stroke:#17345d;stroke-width:1.5}`;
+  const modernCss = `.node rect{fill:#fff;stroke:#17345d;stroke-width:1.5}.node.other rect{fill:#e4e7ec;stroke:#17345d;stroke-width:1.5}.heading{font-size:14px;font-weight:700;fill:#10233f}.line{font-size:13px;fill:#31445e}path{stroke:#17345d;stroke-width:1.5}`;
   return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="${chrome.width}" height="${chrome.height}" viewBox="0 0 ${chrome.width} ${chrome.height}" role="img" aria-labelledby="title desc"><title id="title">${xml(project.title)}</title><desc id="desc">${xml(describeFlow(project))}</desc><defs><marker id="a" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="${style === 'classic' ? '#000' : '#17345d'}"/></marker></defs><style>svg{background:#fff;font-family:Arial,'Noto Sans SC',sans-serif}${style === 'classic' ? classicCss : modernCss}path{fill:none;marker-end:url(#a)}g[role=link]:focus rect{stroke:#aa6900;stroke-width:3}.credit{font-size:10px;fill:#59697d}</style>${classicChrome}<g>${connections}</g><g>${nodeMarkup}</g><text x="${style === 'classic' ? 70 : 22}" y="${chrome.height - 16}" class="credit">${xml(chrome.credit)}</text></svg>`;
 }
 
@@ -98,6 +98,7 @@ export async function generateXlsx(project: PrismaProject): Promise<Blob> {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(counts), 'Flow');
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(project.exclusionReasons), 'Exclusion reasons');
+  if (project.otherExclusionReasons.length) XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(project.otherExclusionReasons), 'Exclusion reasons (other)');
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(project.checklist.map((entry) => ({ ...entry, title: checklistTitles[entry.item] }))), 'Checklist');
   const array = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
   return new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

@@ -1,10 +1,12 @@
 'use client';
 
-import { CheckCircle2, CircleDashed, ExternalLink } from 'lucide-react';
-import { checklistSections } from '../../domain/checklist';
+import { useState } from 'react';
+import { CheckCircle2, CircleDashed, ExternalLink, Info } from 'lucide-react';
+import { checklistGuidance, checklistSections } from '../../domain/checklist';
 import type { ChecklistEntry, PrismaProject } from '../../domain/types';
 
 export function ChecklistPanel({ project, onChange }: { project: PrismaProject; onChange: (project: PrismaProject) => void }) {
+  const [openInfo, setOpenInfo] = useState<number | null>(null);
   const completed = project.checklist.filter((entry) => entry.status === 'complete' || entry.status === 'not-applicable').length;
   const progress = Math.round((completed / 27) * 100);
   const patch = (item: number, update: Partial<ChecklistEntry>) => {
@@ -28,11 +30,20 @@ export function ChecklistPanel({ project, onChange }: { project: PrismaProject; 
                 return (
                   <article className="checklist-item" key={item}>
                     <header><span className="item-number">{item}</span><h3>{title}</h3>
+                      <button
+                        type="button" className="icon-button info-toggle"
+                        aria-expanded={openInfo === item} aria-controls={`checklist-info-${item}`}
+                        aria-label={`O que relatar no item ${item}`}
+                        onClick={() => setOpenInfo(openInfo === item ? null : item)}
+                      >
+                        <Info size={16} />
+                      </button>
                       <select aria-label={`Status do item ${item}`} value={entry.status} onChange={(event) => patch(item, { status: event.target.value as ChecklistEntry['status'], reviewedAt: new Date().toISOString().slice(0, 10) })}>
                         <option value="not-started">Não iniciado</option><option value="in-progress">Em andamento</option>
                         <option value="complete">Concluído</option><option value="not-applicable">Não aplicável</option>
                       </select>
                     </header>
+                    {openInfo === item && <p id={`checklist-info-${item}`} className="checklist-info" role="note">{checklistGuidance[item]}</p>}
                     <div className="checklist-fields">
                       <label>Localização no manuscrito<input value={entry.location} onChange={(event) => patch(item, { location: event.target.value })} /></label>
                       <label>Página<input value={entry.page} onChange={(event) => patch(item, { page: event.target.value })} /></label>

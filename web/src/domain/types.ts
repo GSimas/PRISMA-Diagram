@@ -17,6 +17,7 @@ export const countKeys = [
   'organisations', 'citationSearching', 'otherSources', 'duplicates',
   'automationExcluded', 'removedOther', 'screened', 'recordsExcluded',
   'reportsSought', 'reportsNotRetrieved', 'reportsAssessed', 'reportsExcluded',
+  'otherReportsSought', 'otherReportsNotRetrieved', 'otherReportsAssessed', 'otherReportsExcluded',
   'newStudies', 'newReports', 'totalStudies', 'totalReports',
 ] as const;
 
@@ -101,6 +102,7 @@ export interface PrismaProject {
   counts: Counts;
   overrides: Partial<Record<CountKey, ManualOverride>>;
   exclusionReasons: ExclusionReason[];
+  otherExclusionReasons: ExclusionReason[];
   provenance: Partial<Record<CountKey, NodeProvenance>>;
   checklist: ChecklistEntry[];
   presentation: PresentationPreferences;

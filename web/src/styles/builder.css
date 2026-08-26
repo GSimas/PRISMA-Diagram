@@ -34,6 +34,8 @@
 .count-field .formula { color: var(--muted); }
 .count-field.derived input { border-style: dashed; }
 .count-field.override input { border-color: var(--amber); }
+@keyframes field-flash-pulse { 0%, 100% { background: transparent; box-shadow: none; } 20%, 60% { background: color-mix(in srgb, var(--amber) 22%, transparent); box-shadow: 0 0 0 2px var(--amber); } }
+.field-flash { animation: field-flash-pulse 1.6s ease-in-out; border-radius: 2px; }
 .reasons-editor { display: grid; gap: .6rem; }
 .reasons-editor > div { display: grid; grid-template-columns: 1fr 70px 32px; gap: .35rem; }
 .reasons-editor > div input { padding: .45rem; font-size: .7rem; }
@@ -53,6 +55,7 @@
 .diagram-node:hover rect, .diagram-node:focus rect { fill: var(--blue-soft); stroke: var(--amber); stroke-width: 2.5; }
 .diagram-node.selected rect { stroke: var(--amber); stroke-width: 3; }
 .diagram-node.side rect { fill: color-mix(in srgb, var(--surface-2) 60%, var(--surface)); }
+.diagram-node.other rect { fill: color-mix(in srgb, var(--muted) 22%, var(--surface)); }
 .diagram-node.final rect { fill: var(--blue-soft); }
 .node-heading { fill: var(--ink); font: 700 14px var(--font-sans); }
 .node-line { fill: var(--muted); font: 12px var(--font-sans); }
@@ -62,6 +65,9 @@
 .prisma-svg-classic .classic-source-header.other-source { fill: #d9d9d9; }
 .prisma-svg-classic .classic-source-label { fill: #000; font: 12px Arial, 'Noto Sans SC', sans-serif; text-anchor: middle; }
 .prisma-svg-classic .classic-stage-band { fill: #b8d2f2; }
+.classic-stage-group { cursor: pointer; }
+.classic-stage-group:hover .classic-stage-band, .classic-stage-group:focus .classic-stage-band { fill: #8fb6e8; }
+.classic-stage-group:focus { outline: none; }
 .prisma-svg-classic .classic-stage-label { fill: #000; font: 12px Arial, 'Noto Sans SC', sans-serif; text-anchor: middle; dominant-baseline: central; }
 .prisma-svg-classic .diagram-connections path { stroke: #000; stroke-width: 1.1; }
 .prisma-svg-classic .diagram-arrow-head { fill: #000; }
@@ -88,7 +94,8 @@
 .provenance-editor summary { padding: .8rem 0; cursor: pointer; font-weight: 750; font-size: .72rem; }
 .provenance-editor label { margin-bottom: .55rem; }
 .issue-count { display: grid; place-items: center; min-width: 32px; height: 32px; border: 1px solid var(--line); font: .7rem var(--font-mono); }
-.validation-item { position: relative; margin-top: .75rem; padding: .8rem .8rem .8rem 1rem; border-left: 3px solid var(--line-strong); background: var(--surface); }
+.validation-item { position: relative; margin-top: .75rem; padding: .8rem .8rem .8rem 1rem; border-left: 3px solid var(--line-strong); background: var(--surface); cursor: pointer; }
+.validation-item:hover, .validation-item:focus-visible { background: var(--surface-2); }
 .validation-item > span { color: var(--muted); font: .54rem var(--font-mono); text-transform: uppercase; }
 .validation-item h3 { margin: .25rem 0; font-size: .76rem; }
 .validation-item p, .validation-item small { display: block; margin: .2rem 0; color: var(--muted); font-size: .66rem; line-height: 1.45; }
@@ -110,10 +117,13 @@
 .checklist-section > summary > span { display: flex; align-items: center; gap: .55rem; font-weight: 750; }
 .checklist-section > summary small { color: var(--muted); }
 .checklist-item { padding: 1rem; margin-bottom: .8rem; border: 1px solid var(--line); background: var(--paper-2); }
-.checklist-item header { display: grid; grid-template-columns: 34px 1fr minmax(150px, auto); gap: .7rem; align-items: center; }
+.checklist-item header { display: grid; grid-template-columns: 34px 1fr auto minmax(150px, auto); gap: .7rem; align-items: center; }
 .item-number { color: var(--amber); font: .7rem var(--font-mono); }
 .checklist-item h3 { margin: 0; font-size: .86rem; }
 .checklist-item select { padding: .45rem; font-size: .7rem; }
+.checklist-item .info-toggle { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 50%; background: transparent; color: var(--muted); }
+.checklist-item .info-toggle[aria-expanded='true'] { border-color: var(--amber); color: var(--amber); }
+.checklist-info { margin: 0 0 .8rem; padding: .65rem .8rem; border-left: 3px solid var(--amber); background: color-mix(in srgb, var(--amber) 8%, transparent); font-size: .72rem; line-height: 1.5; color: var(--ink); }
 .checklist-fields { display: grid; grid-template-columns: 2fr .6fr 1fr 2fr; gap: .7rem; margin: 1rem 0; }
 .checklist-fields .wide { grid-column: 1 / -1; }
 .export-panel > p, .import-wizard > p { color: var(--muted); line-height: 1.7; }

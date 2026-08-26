@@ -20,6 +20,10 @@ export function createProject(options: {
     organisations: model.endsWith('-other') ? 12 : null, citationSearching: model.endsWith('-other') ? 19 : null,
     otherSources: model.endsWith('-other') ? 4 : null, duplicates: 401, automationExcluded: 72,
     removedOther: 102, recordsExcluded: 1780, reportsNotRetrieved: 24, reportsExcluded: 68,
+    otherReportsSought: model.endsWith('-other') ? 63 : null,
+    otherReportsNotRetrieved: model.endsWith('-other') ? 5 : null,
+    otherReportsAssessed: model.endsWith('-other') ? 58 : null,
+    otherReportsExcluded: model.endsWith('-other') ? 3 : null,
     newStudies: 34, previousStudies: model.startsWith('updated') ? 18 : null,
     previousReports: model.startsWith('updated') ? 22 : null,
   });
@@ -47,6 +51,9 @@ export function createProject(options: {
       { id: makeId(), label: 'População fora do escopo', count: 31 },
       { id: makeId(), label: 'Desenho de estudo inelegível', count: 22 },
       { id: makeId(), label: 'Intervenção não pertinente', count: 15 },
+    ] : [],
+    otherExclusionReasons: options.example && model.endsWith('-other') ? [
+      { id: makeId(), label: 'Fonte não revisada por pares', count: 3 },
     ] : [],
     provenance: {},
     checklist: createChecklist(),

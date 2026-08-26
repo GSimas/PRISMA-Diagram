@@ -1,26 +1,31 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Download, FileCheck2, Focus, HelpCircle, Maximize2, Redo2, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Download, FileCheck2, Focus, HelpCircle, Maximize2, Redo2, Sparkles, Trash2, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
 import { useApp } from '../../app/AppProviders';
 import { useProjectStore } from '../../app/store';
-import { calculateProject, hasOtherSources, isUpdatedModel, selectModel } from '../../domain/calculations';
-import { countKeys, type CountKey, type NodeProvenance, type PrismaProject } from '../../domain/types';
+import { calculateProject, emptyCounts, hasOtherSources, isUpdatedModel, selectModel } from '../../domain/calculations';
+import { createExampleChecklist, createChecklist } from '../../domain/checklist';
+import { createProject } from '../../domain/project';
+import { countKeys, type CountKey, type NodeProvenance, type PrismaProject, type ValidationIssue } from '../../domain/types';
 import { validateProject } from '../../domain/validation';
 import { getProject, saveProject } from '../../storage/db';
-import { PrismaDiagram } from './PrismaDiagram';
+import { PrismaDiagram, type DiagramStage } from './PrismaDiagram';
 import { ChecklistPanel } from '../checklist/ChecklistPanel';
 import { ExportPanel } from '../export/ExportPanel';
 import { ImportWizard } from '../import/ImportWizard';
 
-const fieldSections: { title: string; fields: CountKey[] }[] = [
-  { title: 'Estudos anteriores', fields: ['previousStudies', 'previousReports'] },
-  { title: 'Identificação', fields: ['databases', 'registers', 'websites', 'organisations', 'citationSearching', 'otherSources'] },
-  { title: 'Removidos antes da triagem', fields: ['duplicates', 'automationExcluded', 'removedOther'] },
-  { title: 'Triagem e recuperação', fields: ['screened', 'recordsExcluded', 'reportsSought', 'reportsNotRetrieved'] },
-  { title: 'Elegibilidade', fields: ['reportsAssessed', 'reportsExcluded'] },
-  { title: 'Inclusão', fields: ['newStudies', 'newReports', 'totalStudies', 'totalReports'] },
+const fieldSections: { title: string; slug: string; fields: CountKey[] }[] = [
+  { title: 'Estudos anteriores', slug: 'previous', fields: ['previousStudies', 'previousReports'] },
+  { title: 'Identificação', slug: 'identification', fields: ['databases', 'registers', 'websites', 'organisations', 'citationSearching', 'otherSources'] },
+  { title: 'Removidos antes da triagem', slug: 'removed', fields: ['duplicates', 'automationExcluded', 'removedOther'] },
+  { title: 'Triagem e recuperação', slug: 'screening', fields: ['screened', 'recordsExcluded', 'reportsSought', 'reportsNotRetrieved'] },
+  { title: 'Elegibilidade', slug: 'eligibility', fields: ['reportsAssessed', 'reportsExcluded'] },
+  { title: 'Identificação de novos estudos por outros métodos', slug: 'other-methods', fields: ['otherReportsSought', 'otherReportsNotRetrieved', 'otherReportsAssessed', 'otherReportsExcluded'] },
+  { title: 'Inclusão', slug: 'included', fields: ['newStudies', 'newReports', 'totalStudies', 'totalReports'] },
 ];
+
+const optionalFields: CountKey[] = ['automationExcluded', 'removedOther'];
 
 const labels: Record<CountKey, string> = {
   previousStudies: 'Estudos incluídos na versão anterior', previousReports: 'Relatos da versão anterior',
@@ -33,6 +38,8 @@ const labels: Record<CountKey, string> = {
   reportsNotRetrieved: 'Relatos não recuperados', reportsAssessed: 'Relatos avaliados para elegibilidade',
   reportsExcluded: 'Relatos excluídos', newStudies: 'Novos estudos incluídos',
   newReports: 'Relatos dos novos estudos', totalStudies: 'Total de estudos incluídos', totalReports: 'Total de relatos incluídos',
+  otherReportsSought: 'Relatos procurados (outros métodos)', otherReportsNotRetrieved: 'Relatos não recuperados (outros métodos)',
+  otherReportsAssessed: 'Relatos avaliados para elegibilidade (outros métodos)', otherReportsExcluded: 'Relatos excluídos (outros métodos)',
 };
 
 const definitions: Partial<Record<CountKey, string>> = {
@@ -43,6 +50,8 @@ const definitions: Partial<Record<CountKey, string>> = {
   reportsAssessed: 'Relatos recuperados e avaliados contra os critérios de elegibilidade.',
   newStudies: 'Estudos únicos incluídos na revisão atual; um estudo pode ter mais de um relato.',
   newReports: 'Relatos que descrevem os novos estudos incluídos.',
+  otherReportsSought: 'Documentos em texto completo procurados a partir de sites, organizações ou busca por citações.',
+  otherReportsAssessed: 'Relatos de outros métodos recuperados e avaliados contra os critérios de elegibilidade.',
 };
 
 export function BuilderWorkspace() {
@@ -52,9 +61,37 @@ export function BuilderWorkspace() {
   const [tab, setTab] = useState<'data' | 'checklist' | 'export' | 'import'>('data');
   const [zoom, setZoom] = useState(0.82);
   const [saveState, setSaveState] = useState<'saving' | 'saved'>('saved');
+  const [confirmClear, setConfirmClear] = useState(false);
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const flashTimeoutRef = useRef<number | undefined>(undefined);
   const calculated = useMemo(() => calculateProject(project), [project]);
   const issues = useMemo(() => validateProject(project), [project]);
+
+  const focusById = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const details = el.closest('details');
+    if (details && !(details as HTMLDetailsElement).open) (details as HTMLDetailsElement).open = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.remove('field-flash');
+    void el.offsetWidth;
+    el.classList.add('field-flash');
+    window.clearTimeout(flashTimeoutRef.current);
+    flashTimeoutRef.current = window.setTimeout(() => el.classList.remove('field-flash'), 1600);
+  };
+
+  const focusField = (field: CountKey) => {
+    setSelected(field);
+    focusById(`field-${field}`);
+  };
+
+  const handleIssueClick = (item: ValidationIssue) => {
+    if (item.location === 'project') { focusById('project-title-field'); return; }
+    if (item.location === 'model') { focusById('model-fieldset'); return; }
+    focusField(item.location);
+  };
+
+  const focusStage = (stage: DiagramStage) => focusById(`section-${stage}`);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get('project') ?? localStorage.getItem('prisma-last-project');
@@ -72,8 +109,23 @@ export function BuilderWorkspace() {
 
   const applicable = (field: CountKey) => {
     if (['previousStudies', 'previousReports'].includes(field)) return isUpdatedModel(project.model);
-    if (['websites', 'organisations', 'citationSearching', 'otherSources'].includes(field)) return hasOtherSources(project.model);
+    if (['websites', 'organisations', 'citationSearching', 'otherSources', 'otherReportsSought', 'otherReportsNotRetrieved', 'otherReportsAssessed', 'otherReportsExcluded'].includes(field)) return hasOtherSources(project.model);
     return true;
+  };
+
+  const clearAll = () => patchProject({
+    counts: emptyCounts(),
+    overrides: {},
+    exclusionReasons: [],
+    otherExclusionReasons: [],
+    sources: [],
+    provenance: {},
+    checklist: createChecklist(),
+  }, 'Dados do projeto limpos');
+
+  const loadExample = () => {
+    const example = createProject({ title: project.title, locale, model: 'updated-databases-other', example: true });
+    patchProject({ ...example, id: project.id, createdAt: project.createdAt, checklist: createExampleChecklist() }, 'Exemplo carregado');
   };
 
   const setOtherSources = (enabled: boolean) => patchProject({ model: selectModel(project.reviewKind, enabled) }, 'Modelo alterado');
@@ -118,6 +170,8 @@ export function BuilderWorkspace() {
         <button type="button" onClick={() => setTab('export')} title={t('export')}><Download /><span>{t('export')}</span></button>
         <button type="button" onClick={() => window.print()} title={t('printPreview')}><FileCheck2 /><span>{t('printPreview')}</span></button>
         <a href="/learn" title="Ajuda metodológica"><HelpCircle /><span>Ajuda</span></a>
+        <button type="button" onClick={() => setConfirmClear(true)} title="Limpar todos os dados do projeto"><Trash2 /><span>Limpar tudo</span></button>
+        <button type="button" onClick={loadExample} title="Carregar exemplo preenchido nas abas Dados e Checklist"><Sparkles /><span>Exemplo</span></button>
       </div>
 
       <div className="builder-tabs" role="tablist" aria-label="Módulos do construtor">
@@ -136,11 +190,11 @@ export function BuilderWorkspace() {
           <aside className="data-panel" aria-label="Preenchimento do diagrama">
             <section className="project-setup">
               <h2>Configuração do projeto</h2>
-              <label>{t('title')}<input value={project.title} onChange={(event) => patchProject({ title: event.target.value })} /></label>
+              <label id="project-title-field">{t('title')}<input value={project.title} onChange={(event) => patchProject({ title: event.target.value })} /></label>
               <label>{t('authors')}<input value={project.authors.join('; ')} onChange={(event) => patchProject({ authors: event.target.value.split(';').map((value) => value.trim()).filter(Boolean) })} placeholder="Separados por ponto e vírgula" /></label>
               <label>{t('institution')}<input value={project.institution} onChange={(event) => patchProject({ institution: event.target.value })} /></label>
               <label>{t('protocol')}<input type="url" value={project.protocolUrl} onChange={(event) => patchProject({ protocolUrl: event.target.value })} /></label>
-              <fieldset><legend>Tipo do fluxo</legend>
+              <fieldset id="model-fieldset"><legend>Tipo do fluxo</legend>
                 <label className="check-row"><input type="radio" name="review-kind" checked={project.reviewKind === 'new'} onChange={() => setReviewKind('new')} /> {t('newReview')}</label>
                 <label className="check-row"><input type="radio" name="review-kind" checked={project.reviewKind === 'updated'} onChange={() => setReviewKind('updated')} /> {t('updatedReview')}</label>
                 <label className="check-row"><input type="checkbox" checked={hasOtherSources(project.model)} onChange={(event) => setOtherSources(event.target.checked)} /> {t('otherSources')}</label>
@@ -150,15 +204,16 @@ export function BuilderWorkspace() {
               const fields = section.fields.filter(applicable);
               if (!fields.length) return null;
               return (
-                <details className="form-section" key={section.title} open={section.title === 'Identificação'}>
+                <details className="form-section" id={`section-${section.slug}`} key={section.title} open={section.title === 'Identificação'}>
                   <summary>{section.title}<span>{fields.filter((field) => calculated.values[field] !== null).length}/{fields.length}</span></summary>
                   <div>
                     {fields.map((field) => {
                       const origin = calculated.origins[field];
                       const fieldIssues = issues.filter((item) => item.location === field);
+                      const optional = optionalFields.includes(field);
                       return (
-                        <label className={`count-field ${origin}`} key={field}>
-                          <span>{labels[field]}<small>{origin === 'derived' ? t('derived') : origin === 'override' ? t('override') : t('informed')}</small></span>
+                        <label className={`count-field ${origin}`} key={field} id={`field-${field}`}>
+                          <span>{labels[field]}<small>{origin === 'derived' ? t('derived') : origin === 'override' ? t('override') : t('informed')}{optional ? ' · opcional' : ''}</small></span>
                           <input
                             type="number" min="0" step="1" inputMode="numeric" value={calculated.values[field] ?? ''}
                             disabled={origin === 'derived'} aria-invalid={fieldIssues.some((item) => item.status === 'inconsistency' || item.status === 'missing')}
@@ -187,6 +242,19 @@ export function BuilderWorkspace() {
               ))}
               <button className="text-button" type="button" onClick={() => patchProject({ exclusionReasons: [...project.exclusionReasons, { id: crypto.randomUUID(), label: '', count: 0 }] })}>+ {t('addReason')}</button>
             </section>
+            {hasOtherSources(project.model) && (
+              <section className="reasons-editor">
+                <h2>Razões de exclusão — outros métodos</h2>
+                {project.otherExclusionReasons.map((reason) => (
+                  <div key={reason.id}>
+                    <input aria-label="Razão" value={reason.label} onChange={(event) => patchProject({ otherExclusionReasons: project.otherExclusionReasons.map((item) => item.id === reason.id ? { ...item, label: event.target.value } : item) })} />
+                    <input aria-label="Contagem" type="number" min="0" value={reason.count} onChange={(event) => patchProject({ otherExclusionReasons: project.otherExclusionReasons.map((item) => item.id === reason.id ? { ...item, count: Number(event.target.value) } : item) })} />
+                    <button type="button" aria-label="Remover razão" onClick={() => patchProject({ otherExclusionReasons: project.otherExclusionReasons.filter((item) => item.id !== reason.id) })}>×</button>
+                  </div>
+                ))}
+                <button className="text-button" type="button" onClick={() => patchProject({ otherExclusionReasons: [...project.otherExclusionReasons, { id: crypto.randomUUID(), label: '', count: 0 }] })}>+ {t('addReason')}</button>
+              </section>
+            )}
           </aside>
 
           <section className="diagram-panel" aria-label="Editor visual do diagrama">
@@ -197,7 +265,7 @@ export function BuilderWorkspace() {
                 <label>{t('structureMode')}<select aria-label={t('structureMode')} value={project.presentation.mode} onChange={(event) => patchProject({ presentation: { ...project.presentation, mode: event.target.value as 'prisma' | 'presentation' } })}><option value="prisma">{t('prismaMode')}</option><option value="presentation">{t('presentationMode')}</option></select></label>
               </div>
             </div>
-            <PrismaDiagram project={project} locale={locale} selected={selected} onSelect={setSelected} zoom={zoom} />
+            <PrismaDiagram project={project} locale={locale} selected={selected} onSelect={focusField} onSelectStage={focusStage} zoom={zoom} />
             <details className="diagram-alternative">
               <summary>Alternativa textual e tabular</summary>
               <table><thead><tr><th>Etapa</th><th>Valor</th><th>Origem</th></tr></thead><tbody>{countKeys.filter(applicable).map((field) => <tr key={field}><th>{labels[field]}</th><td>{calculated.values[field] ?? '—'}</td><td>{calculated.origins[field]}</td></tr>)}</tbody></table>
@@ -226,9 +294,33 @@ export function BuilderWorkspace() {
             <section className="validation-panel">
               <div className="panel-heading"><div><p className="kicker">MOTOR DE REGRAS</p><h2>{t('validation')}</h2></div><span className="issue-count">{issues.filter((item) => item.status !== 'valid').length}</span></div>
               <div role="status" aria-live="polite" className="sr-only">{issues.length} resultados de validação</div>
-              {issues.map((item) => <article className={`validation-item ${item.status}`} key={item.id}><span>{item.status}</span><h3>{item.title}</h3><p>{item.why}</p><small>{item.how}</small></article>)}
+              {issues.map((item) => (
+                <article
+                  className={`validation-item ${item.status}`}
+                  key={item.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleIssueClick(item)}
+                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleIssueClick(item); } }}
+                >
+                  <span>{item.status}</span><h3>{item.title}</h3><p>{item.why}</p><small>{item.how}</small>
+                </article>
+              ))}
             </section>
           </aside>
+        </div>
+      )}
+
+      {confirmClear && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal" role="alertdialog" aria-modal="true" aria-labelledby="clear-title">
+            <h2 id="clear-title">Limpar todos os dados?</h2>
+            <p>Contagens, razões de exclusão, fontes, checklist e proveniência deste projeto serão apagados. Título, autores e o modelo do fluxo são mantidos. Você pode desfazer com o botão "Desfazer" logo em seguida.</p>
+            <div>
+              <button className="secondary-button" type="button" onClick={() => setConfirmClear(false)}>Cancelar</button>
+              <button className="danger-button" type="button" onClick={() => { clearAll(); setConfirmClear(false); }}>Limpar tudo</button>
+            </div>
+          </section>
         </div>
       )}
     </main>

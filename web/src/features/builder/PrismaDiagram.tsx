@@ -5,15 +5,18 @@ import type { CountKey, Locale, PrismaProject } from '../../domain/types';
 import { describeFlow } from '../../domain/calculations';
 import { getDiagramChrome, getDiagramConnections, getDiagramNodes } from './diagramModel';
 
+export type DiagramStage = 'identification' | 'screening' | 'included';
+
 interface Props {
   project: PrismaProject;
   locale: Locale;
   selected: CountKey;
   onSelect: (field: CountKey) => void;
+  onSelectStage?: (stage: DiagramStage) => void;
   zoom?: number;
 }
 
-export function PrismaDiagram({ project, locale, selected, onSelect, zoom = 1 }: Props) {
+export function PrismaDiagram({ project, locale, selected, onSelect, onSelectStage, zoom = 1 }: Props) {
   const style = project.presentation.diagramStyle ?? 'classic';
   const nodes = useMemo(() => getDiagramNodes(project, locale, style), [project, locale, style]);
   const chrome = useMemo(() => getDiagramChrome(project, locale, style), [project, locale, style]);
@@ -40,19 +43,38 @@ export function PrismaDiagram({ project, locale, selected, onSelect, zoom = 1 }:
           </marker>
         </defs>
         {style === 'classic' && (
-          <g className="classic-chrome" aria-hidden="true">
-            <rect className="classic-source-header main-source" x="70" y="30" width="557" height="31" rx="15.5" />
-            <text className="classic-source-label" x="348.5" y="50">{chrome.mainHeader}</text>
-            {chrome.hasOtherSources && <>
-              <rect className="classic-source-header other-source" x="662" y="30" width="558" height="31" rx="15.5" />
-              <text className="classic-source-label" x="941" y="50">{chrome.otherHeader}</text>
-            </>}
-            <rect className="classic-stage-band" x="17" y={chrome.identificationTop} width="31" height={chrome.screeningTop - chrome.identificationTop - 54} rx="11" />
-            <text className="classic-stage-label" transform={`translate(36 ${chrome.identificationTop + (chrome.screeningTop - chrome.identificationTop - 54) / 2}) rotate(-90)`}>{chrome.identification}</text>
-            <rect className="classic-stage-band" x="17" y={chrome.screeningTop} width="31" height={chrome.includedTop - chrome.screeningTop - 18} rx="11" />
-            <text className="classic-stage-label" transform={`translate(36 ${chrome.screeningTop + (chrome.includedTop - chrome.screeningTop - 18) / 2}) rotate(-90)`}>{chrome.screening}</text>
-            <rect className="classic-stage-band" x="17" y={chrome.includedTop} width="31" height={lastNodeBottom - chrome.includedTop + 15} rx="11" />
-            <text className="classic-stage-label" transform={`translate(36 ${chrome.includedTop + (lastNodeBottom - chrome.includedTop + 15) / 2}) rotate(-90)`}>{chrome.included}</text>
+          <g className="classic-chrome">
+            <g aria-hidden="true">
+              <rect className="classic-source-header main-source" x="70" y="30" width="557" height="31" rx="15.5" />
+              <text className="classic-source-label" x="348.5" y="50">{chrome.mainHeader}</text>
+              {chrome.hasOtherSources && <>
+                <rect className="classic-source-header other-source" x="662" y="30" width="558" height="31" rx="15.5" />
+                <text className="classic-source-label" x="941" y="50">{chrome.otherHeader}</text>
+              </>}
+            </g>
+            {([
+              ['identification', chrome.identificationTop, chrome.screeningTop - chrome.identificationTop - 54, chrome.identification],
+              ['screening', chrome.screeningTop, chrome.includedTop - chrome.screeningTop - 18, chrome.screening],
+              ['included', chrome.includedTop, lastNodeBottom - chrome.includedTop + 15, chrome.included],
+            ] as [DiagramStage, number, number, string][]).map(([stage, y, height, label]) => (
+              <g
+                key={stage}
+                className="classic-stage-group"
+                role="button"
+                tabIndex={0}
+                aria-label={`${label}. Ir para o formulário desta etapa.`}
+                onClick={() => onSelectStage?.(stage)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelectStage?.(stage);
+                  }
+                }}
+              >
+                <rect className="classic-stage-band" x="17" y={y} width="31" height={height} rx="11" />
+                <text className="classic-stage-label" transform={`translate(36 ${y + height / 2}) rotate(-90)`}>{label}</text>
+              </g>
+            ))}
           </g>
         )}
         <g aria-hidden="true" className="diagram-connections">
