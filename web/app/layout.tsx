@@ -2,11 +2,13 @@ import type { Metadata, Viewport } from 'next';
 import { AppProviders } from '@/src/app/AppProviders';
 import { GlobalHeader } from '@/src/components/GlobalHeader';
 import { GlobalFooter } from '@/src/components/GlobalFooter';
+import { PrismaAssistant } from '@/src/components/PrismaAssistant';
 import './globals.css';
 import '@/src/styles/system.css';
 import '@/src/styles/landing.css';
 import '@/src/styles/builder.css';
 import '@/src/styles/content.css';
+import '@/src/styles/assistant.css';
 
 const siteUrl = new URL(process.env.URL ?? 'http://localhost:3000');
 
@@ -70,6 +72,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <GlobalHeader />
           {children}
           <GlobalFooter />
+          <PrismaAssistant />
         </AppProviders>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       </body>
