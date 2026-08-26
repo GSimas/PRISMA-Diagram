@@ -1,0 +1,5 @@
+import type { Metadata } from 'next';
+import { InfoPage } from '@/src/components/InfoPage';
+export const dynamic = 'force-static';
+export const metadata: Metadata = { title: 'Privacidade', description: 'Como o PRISMA Diagram processa e armazena dados localmente.', alternates: { canonical: '/privacy' } };
+export default function PrivacyPage() { return <InfoPage eyebrow="LOCAL-FIRST" title="Privacidade por arquitetura" lead="O funcionamento central não exige cadastro, cookies de rastreamento, analytics invasivo ou envio de dados científicos."><h2>Armazenamento</h2><p>Projetos são persistidos em IndexedDB no próprio navegador. Preferências de idioma, tema e acessibilidade usam armazenamento local. Limpar os dados do site pode apagar projetos sem backup.</p><h2>Exportações e links</h2><p>Arquivos são gerados no dispositivo. Links externos só são abertos por ação do usuário. O aplicativo não coloca dados do projeto em URLs.</p><h2>Responsabilidade</h2><p>Evite inserir ou publicar resultados licenciados de bases, resumos protegidos, dados pessoais ou arquivos que contrariem direitos autorais e termos de uso. Gere backups JSON regularmente.</p></InfoPage>; }

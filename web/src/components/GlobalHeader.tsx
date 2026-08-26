@@ -1,0 +1,68 @@
+'use client';
+
+import { Accessibility, Menu, MoonStar, Plus, SunMedium } from 'lucide-react';
+import Link from 'next/link';
+import { useApp } from '../app/AppProviders';
+import { localeNames } from '../i18n/translations';
+import { supportedLocales } from '../i18n/locale';
+
+export function GlobalHeader() {
+  const { ready, locale, setLocale, theme, setTheme, accessibility, setAccessibility, restoreAccessibility, t } = useApp();
+  return (
+    <>
+      <a className="skip-link" href="#main-content">{locale === 'pt-BR' ? 'Pular para o conteúdo' : 'Skip to content'}</a>
+      <header className="global-header">
+        <Link className="brand" href="/" aria-label="PRISMA Diagram">
+          <span className="brand-mark" aria-hidden="true">PD</span>
+          <span><strong>PRISMA Diagram</strong><small>scientific reporting studio</small></span>
+        </Link>
+        <nav className="desktop-nav" aria-label="Navegação principal">
+          <a href="/learn">{t('learn')}</a>
+          <a href="/builder">{t('create')}</a>
+          <a href="/projects">{t('projects')}</a>
+          <a href="/guidelines">{t('guidelines')}</a>
+          <a href="/about">{t('about')}</a>
+        </nav>
+        <div className="header-tools">
+          <label className="compact-select">
+            <span className="sr-only">{t('language')}</span>
+            <select disabled={!ready} value={locale} onChange={(event) => setLocale(event.target.value as typeof locale)} aria-label={t('language')}>
+              {supportedLocales.map((code) => <option key={code} value={code}>{localeNames[code]}</option>)}
+            </select>
+          </label>
+          <label className="compact-select theme-select">
+            <span className="sr-only">{t('theme')}</span>
+            {theme === 'dark' ? <MoonStar aria-hidden="true" size={15} /> : <SunMedium aria-hidden="true" size={15} />}
+            <select disabled={!ready} value={theme} onChange={(event) => setTheme(event.target.value as typeof theme)} aria-label={t('theme')}>
+              <option value="system">{t('system')}</option>
+              <option value="light">{t('light')}</option>
+              <option value="dark">{t('dark')}</option>
+            </select>
+          </label>
+          <details className="a11y-menu">
+            <summary aria-label={t('accessibility')}><Accessibility size={18} aria-hidden="true" /></summary>
+            <div className="popover-panel">
+              <strong>{t('accessibility')}</strong>
+              <label>{t('fontSize')}
+                <select value={accessibility.fontScale} onChange={(event) => setAccessibility({ ...accessibility, fontScale: Number(event.target.value) as 1 | 1.125 | 1.25 })}>
+                  <option value="1">100%</option><option value="1.125">112%</option><option value="1.25">125%</option>
+                </select>
+              </label>
+              <label className="check-row"><input type="checkbox" checked={accessibility.contrast} onChange={(event) => setAccessibility({ ...accessibility, contrast: event.target.checked })} /> {t('highContrast')}</label>
+              <label className="check-row"><input type="checkbox" checked={accessibility.reduceMotion} onChange={(event) => setAccessibility({ ...accessibility, reduceMotion: event.target.checked })} /> {t('reduceMotion')}</label>
+              <button className="text-button" type="button" onClick={restoreAccessibility}>{t('restore')}</button>
+            </div>
+          </details>
+          <a className="header-primary" href="/builder"><Plus size={16} aria-hidden="true" /> <span>{t('newDiagram')}</span></a>
+          <details className="mobile-menu">
+            <summary aria-label="Menu"><Menu size={20} aria-hidden="true" /></summary>
+            <nav aria-label="Navegação móvel">
+              <a href="/learn">{t('learn')}</a><a href="/builder">{t('create')}</a>
+              <a href="/projects">{t('projects')}</a><a href="/guidelines">{t('guidelines')}</a><a href="/about">{t('about')}</a>
+            </nav>
+          </details>
+        </div>
+      </header>
+    </>
+  );
+}

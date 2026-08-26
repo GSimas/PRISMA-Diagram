@@ -1,0 +1,14 @@
+.pnpm-store/
+output/
+web/node_modules/
+web/dist/
+web/.next/
+web/.vinext/
+web/.wrangler/
+web/coverage/
+web/playwright-report/
+web/test-results/
+web/tsconfig.tsbuildinfo
+*.zip
+.env*
+!.env.example

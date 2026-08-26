@@ -1,0 +1,147 @@
+'use client';
+
+import type { Locale, PrismaProject } from '../../domain/types';
+import { calculateProject, describeFlow } from '../../domain/calculations';
+import { validateProject } from '../../domain/validation';
+import { checklistTitles } from '../../domain/checklist';
+import { getDiagramNodes } from '../builder/diagramModel';
+import { downloadBlob, safeFileName, serializeProject } from '../../storage/serialization';
+
+const xml = (value: string) => value.replace(/[<>&'"]/g, (character) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[character] ?? character);
+const html = xml;
+
+export function generateSvg(project: PrismaProject, locale: Locale): string {
+  const nodes = getDiagramNodes(project, locale);
+  const main = nodes.filter((node) => node.x < 500);
+  const sides = nodes.filter((node) => node.x >= 500);
+  const height = Math.max(...nodes.map((node) => node.y + node.height)) + 55;
+  const connections = [
+    ...main.slice(0, -1).map((node, index) => {
+      const next = main[index + 1];
+      return `<line x1="${node.x + node.width / 2}" y1="${node.y + node.height}" x2="${next.x + next.width / 2}" y2="${next.y - 7}"/>`;
+    }),
+    ...sides.map((node) => {
+      const source = main.find((candidate) => candidate.y === node.y);
+      if (node.id === 'identified-other') {
+        const target = main.find((candidate) => candidate.id === 'removed');
+        return target ? `<path d="M ${node.x + node.width / 2} ${node.y + node.height} V ${target.y - 22} H ${target.x + target.width / 2} V ${target.y - 7}"/>` : '';
+      }
+      return source ? `<line x1="${source.x + source.width}" y1="${source.y + source.height / 2}" x2="${node.x - 7}" y2="${node.y + node.height / 2}"/>` : '';
+    }),
+  ].join('');
+  const nodeMarkup = nodes.map((node) => {
+    const text = node.lines.map((line, index) => `<text x="${node.x + 18}" y="${node.y + 25 + index * 20}" class="${index === 0 ? 'heading' : 'line'}">${xml(line)}</text>`).join('');
+    return `<g id="${node.id}" tabindex="0" role="link"><title>${xml(node.lines.join('. '))}</title><rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" rx="2"/>${text}</g>`;
+  }).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="880" height="${height}" viewBox="0 0 880 ${height}" role="img" aria-labelledby="title desc"><title id="title">${xml(project.title)}</title><desc id="desc">${xml(describeFlow(project))}</desc><defs><marker id="a" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#17345d"/></marker></defs><style>svg{background:#fff;font-family:Arial,'Noto Sans SC',sans-serif}g rect{fill:#fff;stroke:#17345d;stroke-width:1.5}.heading{font-size:14px;font-weight:700;fill:#10233f}.line{font-size:13px;fill:#31445e}line,path{fill:none;stroke:#17345d;stroke-width:1.5;marker-end:url(#a)}g[role=link]:focus rect{stroke:#c97a16;stroke-width:3}.credit{font-size:10px;fill:#59697d}</style><g>${connections}</g><g>${nodeMarkup}</g><text x="22" y="${height - 16}" class="credit">Baseado no PRISMA 2020 · CC BY 4.0 · ferramenta independente</text></svg>`;
+}
+
+export async function generatePng(project: PrismaProject, locale: Locale, scale = 2): Promise<Blob> {
+  const svg = generateSvg(project, locale);
+  const source = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+  try {
+    const image = new Image();
+    await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = reject; image.src = source; });
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth * scale;
+    canvas.height = image.naturalHeight * scale;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas indisponível');
+    context.scale(scale, scale);
+    context.drawImage(image, 0, 0);
+    return await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha ao gerar PNG')), 'image/png'));
+  } finally {
+    URL.revokeObjectURL(source);
+  }
+}
+
+export async function generatePdf(project: PrismaProject, locale: Locale): Promise<Blob> {
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const nodes = getDiagramNodes(project, locale);
+  const maxHeight = Math.max(...nodes.map((node) => node.y + node.height)) + 40;
+  const scale = Math.min(180 / 880, 252 / maxHeight);
+  const ox = 15;
+  const oy = 25;
+  doc.setTextColor(16, 35, 63);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text(project.title || 'PRISMA Diagram', ox, 14, { maxWidth: 180 });
+  doc.setDrawColor(23, 52, 93);
+  doc.setLineWidth(0.35);
+  nodes.forEach((node) => {
+    const x = ox + node.x * scale;
+    const y = oy + node.y * scale;
+    doc.rect(x, y, node.width * scale, node.height * scale);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.text(node.lines[0], x + 3, y + 6, { maxWidth: node.width * scale - 6 });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    node.lines.slice(1).forEach((line, index) => doc.text(line, x + 3, y + 12 + index * 5, { maxWidth: node.width * scale - 6 }));
+  });
+  const main = nodes.filter((node) => node.x < 500);
+  main.slice(0, -1).forEach((node, index) => {
+    const next = main[index + 1];
+    doc.line(ox + (node.x + node.width / 2) * scale, oy + (node.y + node.height) * scale, ox + (next.x + next.width / 2) * scale, oy + next.y * scale);
+  });
+  doc.setFontSize(7);
+  doc.setTextColor(80);
+  doc.text('Baseado no PRISMA 2020 · CC BY 4.0 · ferramenta independente', ox, 290);
+  return doc.output('blob');
+}
+
+export function generateCsv(project: PrismaProject): string {
+  const calculated = calculateProject(project);
+  const rows = Object.entries(calculated.values).map(([field, value]) => [
+    field, value ?? '', calculated.origins[field as keyof typeof calculated.origins], calculated.formulas[field as keyof typeof calculated.formulas] ?? '',
+  ]);
+  return '\uFEFF' + [['field', 'value', 'origin', 'calculation'], ...rows].map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n');
+}
+
+export async function generateXlsx(project: PrismaProject): Promise<Blob> {
+  const XLSX = await import('xlsx');
+  const calculated = calculateProject(project);
+  const counts = Object.entries(calculated.values).map(([field, value]) => ({ field, value, origin: calculated.origins[field as keyof typeof calculated.origins], calculation: calculated.formulas[field as keyof typeof calculated.formulas] ?? '' }));
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(counts), 'Flow');
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(project.exclusionReasons), 'Exclusion reasons');
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(project.checklist.map((entry) => ({ ...entry, title: checklistTitles[entry.item] }))), 'Checklist');
+  const array = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+  return new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+export function generateInteractiveHtml(project: PrismaProject, locale: Locale): string {
+  const svg = generateSvg(project, locale).replace(/^<\?xml[^>]+>/, '');
+  const details = getDiagramNodes(project, locale).map((node) => `<article id="detail-${node.id}"><h2>${html(node.lines[0])}</h2><p>${html(node.lines.slice(1).join(' · '))}</p><p>Origem: ${html(calculateProject(project).origins[node.field])}</p></article>`).join('');
+  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${html(project.title)} — PRISMA Diagram</title><style>body{margin:0;font:16px/1.6 system-ui;color:#10233f;background:#f5f1e8}header,main,footer{max-width:1100px;margin:auto;padding:24px}svg{max-width:100%;height:auto;background:white;border:1px solid #bac5d2}article{border-top:1px solid #bac5d2;padding:16px 0}g[role=link]{cursor:pointer}g[role=link]:hover rect{stroke:#c97a16;stroke-width:3}</style></head><body><header><h1>${html(project.title)}</h1><p>Baseado no PRISMA 2020 · ferramenta independente</p></header><main>${svg}<section id="details">${details}</section></main><footer>CC BY 4.0 · Gerado pelo PRISMA Diagram</footer><script>document.querySelectorAll('g[role=link]').forEach(function(n){n.addEventListener('click',function(){var d=document.getElementById('detail-'+n.id);if(d)d.scrollIntoView({behavior:'smooth'})})})</script></body></html>`;
+}
+
+export function generateReportHtml(project: PrismaProject, locale: Locale): string {
+  const issues = validateProject(project);
+  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><title>Relatório — ${html(project.title)}</title><style>body{font:12pt/1.5 Georgia,serif;max-width:900px;margin:auto;padding:32px;color:#17263b}h1,h2{font-family:Arial,sans-serif}table{border-collapse:collapse;width:100%}th,td{border:1px solid #aaa;padding:6px;text-align:left}@media print{body{padding:0}}</style></head><body><h1>${html(project.title)}</h1><p><strong>Diretriz:</strong> PRISMA 2020 · <strong>Modelo:</strong> ${html(project.model)}</p><p>${html(describeFlow(project))}</p>${generateSvg(project, locale).replace(/^<\?xml[^>]+>/, '')}<h2>Validação</h2><table><thead><tr><th>Status</th><th>Verificação</th><th>Como revisar</th></tr></thead><tbody>${issues.map((item) => `<tr><td>${html(item.status)}</td><td>${html(item.title)}</td><td>${html(item.how)}</td></tr>`).join('')}</tbody></table><h2>Checklist PRISMA 2020</h2><table><tbody>${project.checklist.map((entry) => `<tr><td>${entry.item}</td><td>${html(checklistTitles[entry.item])}</td><td>${html(entry.status)}</td><td>${html(entry.location || entry.note)}</td></tr>`).join('')}</tbody></table><h2>Referências</h2><p>Page MJ et al. BMJ 2021;372:n71. doi:10.1136/bmj.n71. Templates PRISMA 2020 sob CC BY 4.0. Verificado em 26 ago. 2026.</p></body></html>`;
+}
+
+export async function exportProject(project: PrismaProject, locale: Locale, format: 'json' | 'csv' | 'xlsx' | 'svg' | 'png' | 'pdf' | 'html' | 'report' | 'zip'): Promise<void> {
+  const name = (ext: string) => safeFileName(project.shortTitle || project.title, ext);
+  if (format === 'json') return downloadBlob(serializeProject(project), name('json'), 'application/json');
+  if (format === 'csv') return downloadBlob(generateCsv(project), name('csv'), 'text/csv;charset=utf-8');
+  if (format === 'svg') return downloadBlob(generateSvg(project, locale), name('svg'), 'image/svg+xml;charset=utf-8');
+  if (format === 'html') return downloadBlob(generateInteractiveHtml(project, locale), name('html'), 'text/html;charset=utf-8');
+  if (format === 'report') return downloadBlob(generateReportHtml(project, locale), name('report.html'), 'text/html;charset=utf-8');
+  if (format === 'xlsx') return downloadBlob(await generateXlsx(project), name('xlsx'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  if (format === 'png') return downloadBlob(await generatePng(project, locale), name('png'), 'image/png');
+  if (format === 'pdf') return downloadBlob(await generatePdf(project, locale), name('pdf'), 'application/pdf');
+  const JSZip = (await import('jszip')).default;
+  const zip = new JSZip();
+  zip.file(name('json'), serializeProject(project));
+  zip.file(name('csv'), generateCsv(project));
+  zip.file(name('svg'), generateSvg(project, locale));
+  zip.file(name('png'), await generatePng(project, locale));
+  zip.file(name('pdf'), await generatePdf(project, locale));
+  zip.file(name('html'), generateInteractiveHtml(project, locale));
+  zip.file(name('report.html'), generateReportHtml(project, locale));
+  zip.file(name('xlsx'), await generateXlsx(project));
+  zip.file('README.txt', `PRISMA Diagram\n\nProjeto: ${project.title}\nDiretriz: PRISMA 2020\nFerramenta independente. Templates PRISMA 2020: CC BY 4.0.\nFontes verificadas em 26 ago. 2026.\nhttps://www.prisma-statement.org/prisma-2020\n`);
+  downloadBlob(await zip.generateAsync({ type: 'blob' }), name('zip'), 'application/zip');
+}

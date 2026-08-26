@@ -1,0 +1,5 @@
+import type { Metadata } from 'next';
+import { InfoPage } from '@/src/components/InfoPage';
+export const dynamic = 'force-static';
+export const metadata: Metadata = { title: 'Licença', description: 'Licenças do código, conteúdo e templates usados pelo PRISMA Diagram.', alternates: { canonical: '/license' } };
+export default function LicensePage() { return <InfoPage eyebrow="PROVENIÊNCIA" title="Licenças e atribuições" lead="O código do PRISMA Diagram é MIT; documentos e templates PRISMA 2020 usados como base são CC BY 4.0."><h2>Código</h2><p>Copyright © 2026 Gustavo Simas. Licenciado sob MIT, conforme o arquivo LICENSE do repositório.</p><h2>PRISMA 2020</h2><p>Os templates de diagrama, checklist, statement e explanation &amp; elaboration são distribuídos sob CC BY 4.0. Atribuição: Page MJ et al. The PRISMA 2020 statement. BMJ 2021;372:n71; e documentos oficiais do PRISMA Executive.</p><h2>Bibliotecas</h2><p>React, Next/Vinext, Vite, Dexie, Zod, Zustand, JSZip, SheetJS, jsPDF, Lucide, Vitest, Testing Library, Playwright e axe-core mantêm suas respectivas licenças.</p></InfoPage>; }
