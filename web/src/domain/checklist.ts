@@ -71,15 +71,51 @@ export const checklistGuidance: Record<number, string> = {
   27: 'Informe quais dados, código analítico e outros materiais usados na revisão estão publicamente disponíveis e onde podem ser encontrados.',
 };
 
+const exampleNotes: Record<number, string> = {
+  1: "Título indica claramente uma revisão sistemática: 'Efeitos de intervenções de saúde digital na adesão ao tratamento em doenças crônicas: uma revisão sistemática e metanálise'.",
+  2: 'Resumo estruturado no formato PRISMA para resumos: objetivos, fontes (MEDLINE, Embase, CENTRAL, ClinicalTrials.gov), critérios de elegibilidade, 34 estudos incluídos e principal achado (aumento médio de 18% na adesão).',
+  3: 'Situa a lacuna: revisões anteriores (2016–2019) não distinguiam apps de mensagens de texto de plataformas interativas; justifica a atualização com estudos publicados até 2024.',
+  4: 'Objetivo no formato PICO: em adultos com doenças crônicas (P), intervenções de saúde digital (I) comparadas ao cuidado usual (C) aumentam a adesão ao tratamento (O)?',
+  5: 'ECR e quase-experimentais, adultos ≥18 anos, qualquer app ou plataforma digital de suporte à adesão, comparador cuidado usual, desfecho de adesão medido objetivamente; excluídos estudos sem grupo controle.',
+  6: 'MEDLINE (via PubMed), Embase, CENTRAL, PsycINFO e ClinicalTrials.gov, buscados de 1 jan. 2010 a 12 mar. 2024; lista de referências dos estudos incluídos revisada manualmente.',
+  7: "Estratégia completa para PubMed no Apêndice A (ex.: ('mobile health'[tiab] OR 'mHealth'[tiab]) AND 'medication adherence'[tiab]), adaptada por base; sem filtro de idioma.",
+  8: 'Dois revisores independentes triaram títulos/resumos no Rayyan; divergências resolvidas por um terceiro revisor; concordância inicial kappa = 0,86; sem uso de automação para exclusão.',
+  9: 'Extração em dupla e independente, com formulário piloto no Covidence; divergências resolvidas por consenso; autores contatados por e-mail para dados ausentes (5 estudos, 3 responderam).',
+  10: 'Desfecho primário: adesão medida objetivamente (ex.: MEMS, dados de log do app); secundários: desfechos clínicos e uso do sistema de saúde; covariáveis: idade, doença crônica, plataforma usada.',
+  11: 'Risco de viés avaliado com a ferramenta RoB 2 (Cochrane) por dois revisores independentes, com discussão para resolver discrepâncias.',
+  12: 'Diferença de médias padronizada (SMD) para adesão contínua; razão de risco (RR) para adesão dicotômica (≥80% de doses tomadas).',
+  13: 'Metanálise de efeitos aleatórios (DerSimonian–Laird) no RevMan 5.4; heterogeneidade avaliada com I²; subgrupos por tipo de plataforma; sensibilidade excluindo estudos com alto risco de viés.',
+  14: 'Assimetria avaliada com gráfico de funil e teste de Egger para a síntese com ≥10 estudos (adesão); demais sínteses avaliadas apenas visualmente por número insuficiente de estudos.',
+  15: 'Certeza avaliada com GRADE para os desfechos primário e secundários, por dois revisores independentes, com justificativa registrada para cada rebaixamento.',
+  16: '2.481 registros identificados, 1.906 triados após remoção de duplicatas, 126 relatos avaliados na íntegra, 34 estudos incluídos; diagrama de fluxo na Figura 1; 92 exclusões em texto completo listadas na Tabela S1 com razões.',
+  17: 'Tabela 1 apresenta, para cada um dos 34 estudos: país, desenho, tamanho amostral, tipo de intervenção digital, comparador e duração do seguimento.',
+  18: 'Figura 2 (gráfico de semáforo RoB 2) resume o risco de viés por domínio e estudo; 6 estudos classificados como alto risco, principalmente por desvios do protocolo.',
+  19: 'Forest plot (Figura 3) com SMD e IC 95% de cada estudo para o desfecho de adesão; dados brutos por braço na Tabela S2.',
+  20: 'Metanálise de 22 estudos: SMD = 0,42 (IC 95% 0,28–0,56; I² = 61%); subgrupo por plataforma reduziu a heterogeneidade (apps interativos: I² = 34%).',
+  21: 'Teste de Egger não indicou assimetria significativa (p = 0,21) para a síntese principal de adesão.',
+  22: 'Certeza da evidência classificada como moderada para o desfecho primário, rebaixada por risco de viés; Tabela 2 (Resumo GRADE) apresentada.',
+  23: 'Resultados discutidos frente a revisões anteriores, com maior efeito em plataformas interativas; limitações incluem heterogeneidade de medidas de adesão e predomínio de estudos de curto prazo; implicações para futuras intervenções.',
+  24: 'Protocolo registrado prospectivamente no PROSPERO (CRD42023123456) em 14/02/2023; uma alteração pós-registro (inclusão da PsycINFO) descrita e justificada.',
+  25: 'Financiado por bolsa institucional de pesquisa; o financiador não participou do desenho, da análise ou da decisão de publicar.',
+  26: 'Dois autores declaram consultoria prestada a empresas de saúde digital não relacionadas aos estudos incluídos; demais autores declaram não haver conflitos.',
+  27: 'Planilha de extração, sintaxes de busca e scripts de análise (R) disponíveis em repositório público (exemplo fictício, para fins de demonstração).',
+};
+
+const exampleLocations: Record<number, string> = { 24: 'Registro do protocolo (PROSPERO)', 27: 'Materiais suplementares' };
+const examplePages: Record<number, number> = {
+  1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 3, 8: 4, 9: 4, 10: 4, 11: 4, 12: 5, 13: 5, 14: 5, 15: 5,
+  16: 6, 17: 6, 18: 7, 19: 7, 20: 7, 21: 8, 22: 8, 23: 9, 24: 10, 25: 10, 26: 10, 27: 10,
+};
+
 export const createExampleChecklist = (): ChecklistEntry[] =>
   Array.from({ length: 27 }, (_, index) => {
     const item = index + 1;
     return {
       item,
       status: 'complete' as const,
-      note: 'Relatado conforme orientação PRISMA 2020 (exemplo fictício para fins de aprendizagem).',
-      location: 'Texto principal',
-      page: String(2 + (index % 10)),
+      note: exampleNotes[item],
+      location: exampleLocations[item] ?? 'Texto principal',
+      page: String(examplePages[item]),
       section: checklistSections.find((section) => section.items.some((entry) => entry.item === item))?.section ?? '',
       url: '',
       reviewedAt: new Date().toISOString().slice(0, 10),

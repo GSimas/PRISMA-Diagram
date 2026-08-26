@@ -45,41 +45,95 @@ export async function generatePng(project: PrismaProject, locale: Locale, scale 
   }
 }
 
+const PDF_FONT_SIZES = [8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4, 3.5, 3];
+
+function fitNodeText(doc: import('jspdf').jsPDF, node: { lines: string[] }, x: number, y: number, w: number, h: number): void {
+  const paddingX = 1.6;
+  const paddingY = 1.8;
+  const availWidth = Math.max(4, w - paddingX * 2);
+  const availHeight = Math.max(3, h - paddingY * 1.6);
+  let size = PDF_FONT_SIZES[PDF_FONT_SIZES.length - 1];
+  let lineHeight = 0;
+  let wrapped: { text: string; bold: boolean }[] = [];
+  for (const candidate of PDF_FONT_SIZES) {
+    doc.setFontSize(candidate);
+    const candidateLineHeight = candidate * 0.3528 * 1.22;
+    const candidateWrapped: { text: string; bold: boolean }[] = [];
+    node.lines.forEach((line, index) => {
+      doc.setFont('helvetica', index === 0 ? 'bold' : 'normal');
+      const parts = doc.splitTextToSize(line, availWidth) as string[];
+      parts.forEach((part) => candidateWrapped.push({ text: part, bold: index === 0 }));
+    });
+    size = candidate;
+    lineHeight = candidateLineHeight;
+    wrapped = candidateWrapped;
+    if (candidateWrapped.length * candidateLineHeight <= availHeight) break;
+  }
+  doc.setFontSize(size);
+  let cy = y + paddingY + lineHeight * 0.8;
+  wrapped.forEach((entry) => {
+    doc.setFont('helvetica', entry.bold ? 'bold' : 'normal');
+    doc.text(entry.text, x + paddingX, cy, { maxWidth: availWidth });
+    cy += lineHeight;
+  });
+}
+
+function drawConnectionPath(doc: import('jspdf').jsPDF, d: string, ox: number, oy: number, scale: number): void {
+  const tokens = d.trim().split(/\s+/);
+  if (tokens[0] !== 'M') return;
+  let cx = ox + parseFloat(tokens[1]) * scale;
+  let cy = oy + parseFloat(tokens[2]) * scale;
+  let i = 3;
+  while (i < tokens.length - 1) {
+    const command = tokens[i];
+    const value = parseFloat(tokens[i + 1]);
+    if (command === 'V') {
+      const ny = oy + value * scale;
+      doc.line(cx, cy, cx, ny);
+      cy = ny;
+    } else if (command === 'H') {
+      const nx = ox + value * scale;
+      doc.line(cx, cy, nx, cy);
+      cx = nx;
+    } else break;
+    i += 2;
+  }
+}
+
 export async function generatePdf(project: PrismaProject, locale: Locale): Promise<Blob> {
   const { jsPDF } = await import('jspdf');
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const style = project.presentation.diagramStyle ?? 'classic';
   const nodes = getDiagramNodes(project, locale, style);
   const chrome = getDiagramChrome(project, locale, style);
-  const maxHeight = Math.max(...nodes.map((node) => node.y + node.height)) + 40;
-  const scale = Math.min(180 / chrome.width, 252 / maxHeight);
+  const connections = getDiagramConnections(nodes, style);
+  const orientation = chrome.width > chrome.height ? 'landscape' : 'portrait';
+  const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
+  const pageWidth = orientation === 'landscape' ? 297 : 210;
+  const pageHeight = orientation === 'landscape' ? 210 : 297;
   const ox = 15;
-  const oy = 25;
+  const oy = 24;
+  const usableWidth = pageWidth - ox * 2;
+  const usableHeight = pageHeight - oy - 14;
+  const scale = Math.min(usableWidth / chrome.width, usableHeight / chrome.height);
   doc.setTextColor(16, 35, 63);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
-  doc.text(project.title || 'PRISMA Diagram', ox, 14, { maxWidth: 180 });
+  doc.text(project.title || 'PRISMA Diagram', ox, 14, { maxWidth: usableWidth });
   doc.setDrawColor(23, 52, 93);
   doc.setLineWidth(0.35);
+  connections.forEach((connection) => drawConnectionPath(doc, connection.d, ox, oy, scale));
   nodes.forEach((node) => {
     const x = ox + node.x * scale;
     const y = oy + node.y * scale;
-    doc.rect(x, y, node.width * scale, node.height * scale);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.text(node.lines[0], x + 3, y + 6, { maxWidth: node.width * scale - 6 });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    node.lines.slice(1).forEach((line, index) => doc.text(line, x + 3, y + 12 + index * 5, { maxWidth: node.width * scale - 6 }));
-  });
-  const main = nodes.filter((node) => node.x < 500);
-  main.slice(0, -1).forEach((node, index) => {
-    const next = main[index + 1];
-    doc.line(ox + (node.x + node.width / 2) * scale, oy + (node.y + node.height) * scale, ox + (next.x + next.width / 2) * scale, oy + next.y * scale);
+    const w = node.width * scale;
+    const h = node.height * scale;
+    doc.rect(x, y, w, h);
+    doc.setTextColor(16, 35, 63);
+    fitNodeText(doc, node, x, y, w, h);
   });
   doc.setFontSize(7);
   doc.setTextColor(80);
-  doc.text('Baseado no PRISMA 2020 · CC BY 4.0 · ferramenta independente', ox, 290);
+  doc.text('Baseado no PRISMA 2020 · CC BY 4.0 · ferramenta independente', ox, pageHeight - 8);
   return doc.output('blob');
 }
 
