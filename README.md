@@ -1,4 +1,4 @@
-# PRISMA Diagram
+# PRISMA Lab
 
 Aplicação web local-first para criar, revisar, validar e exportar diagramas de fluxo baseados no PRISMA 2020. O produto é independente, não representa certificação metodológica e não é afiliado ao PRISMA Executive.
 

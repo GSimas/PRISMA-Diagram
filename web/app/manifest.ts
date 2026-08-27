@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'PRISMA Diagram',
-    short_name: 'PRISMA Diagram',
+    name: 'PRISMA Lab',
+    short_name: 'PRISMA Lab',
     description: 'Criação, validação e exportação local de diagramas baseados no PRISMA 2020.',
     start_url: '/',
     display: 'standalone',

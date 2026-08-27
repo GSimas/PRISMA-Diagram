@@ -12,11 +12,11 @@ export function GlobalHeader() {
     <>
       <a className="skip-link" href="#main-content">{locale === 'pt-BR' ? 'Pular para o conteúdo' : 'Skip to content'}</a>
       <header className="global-header">
-        <Link className="brand" href="/" aria-label="PRISMA Diagram">
+        <Link className="brand" href="/" aria-label="PRISMA Lab">
           <span className="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><rect x="3" y="3" width="18" height="4" rx="1.2" /><rect x="6" y="10" width="12" height="4" rx="1.2" /><rect x="9" y="17" width="6" height="4" rx="1.2" /></svg>
           </span>
-          <span><strong>PRISMA Diagram</strong><small>scientific reporting studio</small></span>
+          <span><strong>PRISMA Lab</strong><small>scientific reporting studio</small></span>
         </Link>
         <nav className="desktop-nav" aria-label="Navegação principal">
           <a href="/learn">{t('learn')}</a>

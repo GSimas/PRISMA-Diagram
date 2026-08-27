@@ -315,7 +315,7 @@ export function BuilderWorkspace() {
         <div className="modal-backdrop" role="presentation">
           <section className="modal" role="alertdialog" aria-modal="true" aria-labelledby="clear-title">
             <h2 id="clear-title">Limpar todos os dados?</h2>
-            <p>Contagens, razões de exclusão, fontes, checklist e proveniência deste projeto serão apagados. Título, autores e o modelo do fluxo são mantidos. Você pode desfazer com o botão "Desfazer" logo em seguida.</p>
+            <p>Contagens, razões de exclusão, fontes, checklist e proveniência deste projeto serão apagados. Título, autores e o modelo do fluxo são mantidos. Você pode desfazer com o botão &quot;Desfazer&quot; logo em seguida.</p>
             <div>
               <button className="secondary-button" type="button" onClick={() => setConfirmClear(false)}>Cancelar</button>
               <button className="danger-button" type="button" onClick={() => { clearAll(); setConfirmClear(false); }}>Limpar tudo</button>

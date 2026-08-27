@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { InfoPage } from '@/src/components/InfoPage';
 
 export const dynamic = 'force-static';
-export const metadata: Metadata = { title: 'Fontes e referências', description: 'Fontes metodológicas, versões, licenças e proveniência das traduções do PRISMA Diagram.', alternates: { canonical: '/sources' } };
+export const metadata: Metadata = { title: 'Fontes e referências', description: 'Fontes metodológicas, versões, licenças e proveniência das traduções do PRISMA Lab.', alternates: { canonical: '/sources' } };
 
 const sources = [
   ['PRISMA website', 'https://www.prisma-statement.org/', 'Definição e documentos principais'],

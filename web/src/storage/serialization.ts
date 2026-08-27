@@ -3,7 +3,7 @@ import type { PrismaProject } from '../domain/types';
 
 export function safeFileName(input: string, extension: string): string {
   const base = input.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || 'prisma-diagram';
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || 'prisma-lab';
   return `${base}.${extension.replace(/^\./, '')}`;
 }
 

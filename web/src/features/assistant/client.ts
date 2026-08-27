@@ -126,7 +126,7 @@ export async function sendAssistantMessage({ providerId, config, systemPrompt, h
     case 'openrouter':
       return sendOpenAiCompatible('https://openrouter.ai/api/v1', config, systemPrompt, history, {
         'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
-        'X-Title': 'PRISMA Diagram',
+        'X-Title': 'PRISMA Lab',
       });
     case 'custom':
       return sendOpenAiCompatible(config.baseUrl!, config, systemPrompt, history);

@@ -55,7 +55,7 @@ export function ImportWizard({ onImport, compact = false }: { onImport: (project
       }
     });
     if (!imported) {
-      setError('Nenhuma linha correspondeu aos IDs de campo do PRISMA Diagram. Confira o mapeamento.');
+      setError('Nenhuma linha correspondeu aos IDs de campo do PRISMA Lab. Confira o mapeamento.');
       return;
     }
     onImport(project);

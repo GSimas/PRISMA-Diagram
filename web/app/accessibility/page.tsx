@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
 import { InfoPage } from '@/src/components/InfoPage';
 export const dynamic = 'force-static';
-export const metadata: Metadata = { title: 'Acessibilidade', description: 'Recursos e compromisso WCAG 2.2 AA do PRISMA Diagram.', alternates: { canonical: '/accessibility' } };
+export const metadata: Metadata = { title: 'Acessibilidade', description: 'Recursos e compromisso WCAG 2.2 AA do PRISMA Lab.', alternates: { canonical: '/accessibility' } };
 export default function AccessibilityPage() { return <InfoPage eyebrow="WCAG 2.2 AA" title="Acessibilidade" lead="A interface foi projetada para operar com teclado, ampliação, alto contraste, redução de movimento e tecnologias assistivas."><h2>Recursos</h2><ul><li>Skip links, foco visível e ordem lógica.</li><li>Labels explícitos, erros associados e regiões ao vivo.</li><li>Alternativa textual e tabular para o SVG.</li><li>Alvos de toque e drawers responsivos.</li><li>Tema claro, escuro, alto contraste e escala de fonte.</li><li>Preferência de movimento reduzido.</li></ul><h2>Limitações e contato</h2><p>Acessibilidade é um processo contínuo. Exportações complexas podem variar conforme leitor de PDF ou editor gráfico; use o HTML interativo para a alternativa mais rica.</p></InfoPage>; }
