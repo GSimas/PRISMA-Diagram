@@ -1,6 +1,6 @@
 import { createChecklist } from './checklist';
 import { emptyCounts, selectModel } from './calculations';
-import { SCHEMA_VERSION, type DiagramModel, type Locale, type PrismaProject } from './types';
+import { SCHEMA_VERSION, type DiagramModel, type Locale, type PrismaProject, type SourceItem } from './types';
 
 const makeId = () => typeof crypto !== 'undefined' && 'randomUUID' in crypto
   ? crypto.randomUUID()
@@ -44,7 +44,18 @@ export function createProject(options: {
     status: 'draft',
     updatedDate: now.slice(0, 10),
     observations: options.example ? 'Dados inteiramente fictícios para fins de aprendizagem.' : '',
-    sources: [],
+    sources: options.example ? ([
+      { id: makeId(), type: 'database', name: 'PubMed / MEDLINE', count: 980 },
+      { id: makeId(), type: 'database', name: 'Embase', count: 620 },
+      { id: makeId(), type: 'database', name: 'Web of Science', count: 350 },
+      { id: makeId(), type: 'database', name: 'Scopus', count: 190 },
+      ...(model.endsWith('-other') ? [
+        { id: makeId(), type: 'website' as const, name: 'Sites', count: 28 },
+        { id: makeId(), type: 'organisation' as const, name: 'Organizações', count: 12 },
+        { id: makeId(), type: 'citation' as const, name: 'Busca por citações', count: 19 },
+        { id: makeId(), type: 'other' as const, name: 'Outras fontes', count: 4 },
+      ] : []),
+    ] as SourceItem[]) : [],
     counts,
     overrides: {},
     exclusionReasons: options.example ? [

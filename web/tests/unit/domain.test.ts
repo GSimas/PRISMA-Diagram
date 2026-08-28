@@ -80,4 +80,72 @@ describe('motor de domínio', () => {
     expect(description).toContain('estudos');
     expect(description).toContain('relatos');
   });
+
+  it('exibe bases de dados individuais e valores especificados no diagrama', async () => {
+    const { getDiagramNodes } = await import('../../src/features/builder/diagramModel');
+    const project = createProject({ model: 'new-databases' });
+    project.sources = [
+      { id: '1', type: 'database', name: 'Web of Science', count: 120 },
+      { id: '2', type: 'database', name: 'Scopus', count: 85 },
+    ];
+    const calc = calculateProject(project);
+    expect(calc.values.databases).toBe(205);
+    expect(calc.origins.databases).toBe('derived');
+
+    const nodes = getDiagramNodes(project, 'pt-BR');
+    const mainNode = nodes.find((n) => n.id === 'identified-main');
+    expect(mainNode?.lines).toContain('Bases de dados (n = 205):');
+    expect(mainNode?.lines).toContain('Web of Science (n = 120)');
+    expect(mainNode?.lines).toContain('Scopus (n = 85)');
+  });
+
+  it('oculta itens em branco de outros métodos no diagrama até receberem valor', async () => {
+    const { getDiagramNodes } = await import('../../src/features/builder/diagramModel');
+    const project = createProject({ model: 'new-databases-other' });
+    project.counts.websites = null;
+    project.counts.organisations = null;
+    project.counts.citationSearching = null;
+    project.counts.otherSources = null;
+
+    let nodes = getDiagramNodes(project, 'pt-BR');
+    let otherNode = nodes.find((n) => n.id === 'identified-other');
+    expect(otherNode?.lines.some((l) => l.includes('Sites'))).toBe(false);
+    expect(otherNode?.lines.some((l) => l.includes('Organizações'))).toBe(false);
+    expect(otherNode?.lines.some((l) => l.includes('Busca por citações'))).toBe(false);
+
+    project.counts.websites = 42;
+    nodes = getDiagramNodes(project, 'pt-BR');
+    otherNode = nodes.find((n) => n.id === 'identified-other');
+    expect(otherNode?.lines.some((l) => l.includes('Sites (n = 42)'))).toBe(true);
+    expect(otherNode?.lines.some((l) => l.includes('Organizações'))).toBe(false);
+    expect(otherNode?.lines.some((l) => l.includes('Busca por citações'))).toBe(false);
+
+    project.counts.citationSearching = 15;
+    nodes = getDiagramNodes(project, 'pt-BR');
+    otherNode = nodes.find((n) => n.id === 'identified-other');
+    expect(otherNode?.lines.some((l) => l.includes('Sites (n = 42)'))).toBe(true);
+    expect(otherNode?.lines.some((l) => l.includes('Busca por citações (n = 15)'))).toBe(true);
+    expect(otherNode?.lines.some((l) => l.includes('Organizações'))).toBe(false);
+  });
+
+  it('exibe fontes selecionadas dinamicamente em outros métodos com nomes e valores', async () => {
+    const { getDiagramNodes } = await import('../../src/features/builder/diagramModel');
+    const project = createProject({ model: 'new-databases-other' });
+    project.sources = [
+      { id: '1', type: 'website', name: 'Sites', count: 45 },
+      { id: '2', type: 'organisation', name: 'Organizações Internacionais', count: 20 },
+      { id: '3', type: 'other', name: 'Contato com autores', count: 5 },
+    ];
+    const calc = calculateProject(project);
+    expect(calc.values.websites).toBe(45);
+    expect(calc.values.organisations).toBe(20);
+    expect(calc.values.otherSources).toBe(5);
+
+    const nodes = getDiagramNodes(project, 'pt-BR');
+    const otherNode = nodes.find((n) => n.id === 'identified-other');
+    expect(otherNode?.lines).toContain('Sites (n = 45)');
+    expect(otherNode?.lines).toContain('Organizações Internacionais (n = 20)');
+    expect(otherNode?.lines).toContain('Contato com autores (n = 5)');
+    expect(otherNode?.value).toBe(70);
+  });
 });

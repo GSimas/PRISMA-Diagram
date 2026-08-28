@@ -9,8 +9,25 @@
 .hero h1 em { color: var(--amber); font-weight: 400; }
 .hero-lead { max-width: 660px; color: var(--muted); font-size: clamp(1rem, 1.35vw, 1.25rem); line-height: 1.75; }
 .hero-actions { display: flex; align-items: center; gap: 2rem; margin: 2.5rem 0; }
-.text-link { color: var(--ink); font: 800 .7rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
-.privacy-note { display: flex; gap: .7rem; align-items: flex-start; max-width: 600px; padding-top: 1.6rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .76rem; line-height: 1.6; }
+.scientata-app-badge {
+  display: inline-block;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--line);
+  margin-bottom: 0.5rem;
+  font: 700 0.72rem var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.scientata-app-badge a {
+  color: var(--amber);
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+.scientata-app-badge a:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+.privacy-note { display: flex; gap: .7rem; align-items: flex-start; max-width: 600px; color: var(--muted); font-size: .76rem; line-height: 1.6; }
 .privacy-note svg { flex: 0 0 auto; margin-top: .15rem; color: var(--amber); }
 .diagram-preview { position: relative; border: 1px solid var(--line-strong); background: var(--surface); box-shadow: 24px 24px 0 color-mix(in srgb, var(--blue) 15%, transparent); padding: 1.4rem; }
 .diagram-preview::before { content: ''; position: absolute; inset: 10px; pointer-events: none; border: 1px solid color-mix(in srgb, var(--line) 40%, transparent); }

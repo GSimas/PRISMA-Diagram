@@ -1,5 +1,5 @@
 import { calculateProject, hasOtherSources, isUpdatedModel } from '../../domain/calculations';
-import type { CountKey, ExclusionReason, Locale, PresentationPreferences, PrismaProject } from '../../domain/types';
+import type { CountKey, ExclusionReason, Locale, PresentationPreferences, PrismaProject, SourceItem } from '../../domain/types';
 
 export type DiagramStyle = PresentationPreferences['diagramStyle'];
 
@@ -33,12 +33,12 @@ export interface DiagramChrome {
 }
 
 const words: Record<Locale, Record<string, string>> = {
-  'pt-BR': { previous: 'Estudos anteriores', identified: 'Registros identificados a partir de:', databases: 'Bases e registros', other: 'Outras fontes', removed: 'Registros removidos antes da triagem:', screened: 'Registros triados', excluded: 'Registros excluídos', sought: 'Relatos procurados para recuperação', notRetrieved: 'Relatos não recuperados', assessed: 'Relatos avaliados para elegibilidade', reportsExcluded: 'Relatos excluídos:', included: 'Novos estudos incluídos na revisão', total: 'Total incluído', reports: 'relatos', studies: 'estudos', mainHeader: 'Identificação de novos estudos em bases de dados e registros', otherHeader: 'Identificação de novos estudos por outros métodos', identification: 'Identificação', screening: 'Triagem', includedStage: 'Incluídos', credit: 'Baseado no PRISMA 2020 · CC BY 4.0 · ferramenta independente', databasesOnly: 'Bases de dados', registersOnly: 'Registros', websitesOnly: 'Sites', organisationsOnly: 'Organizações', citationOnly: 'Busca por citações', otherSourcesOnly: 'Outras fontes', duplicatesOnly: 'Registros duplicados', automationOnly: 'Marcados como inelegíveis por ferramentas de automação', removedOtherOnly: 'Removidos por outras razões', reasonFallback: 'Motivo' },
-  en: { previous: 'Previous studies', identified: 'Records identified from:', databases: 'Databases and registers', other: 'Other sources', removed: 'Records removed before screening:', screened: 'Records screened', excluded: 'Records excluded', sought: 'Reports sought for retrieval', notRetrieved: 'Reports not retrieved', assessed: 'Reports assessed for eligibility', reportsExcluded: 'Reports excluded:', included: 'New studies included in review', total: 'Total included', reports: 'reports', studies: 'studies', mainHeader: 'Identification of new studies via databases and registers', otherHeader: 'Identification of new studies via other methods', identification: 'Identification', screening: 'Screening', includedStage: 'Included', credit: 'Based on PRISMA 2020 · CC BY 4.0 · independent tool', databasesOnly: 'Databases', registersOnly: 'Registers', websitesOnly: 'Websites', organisationsOnly: 'Organisations', citationOnly: 'Citation searching', otherSourcesOnly: 'Other sources', duplicatesOnly: 'Duplicate records', automationOnly: 'Records marked as ineligible by automation tools', removedOtherOnly: 'Records removed for other reasons', reasonFallback: 'Reason' },
-  it: { previous: 'Studi precedenti', identified: 'Record identificati da:', databases: 'Banche dati e registri', other: 'Altre fonti', removed: 'Record rimossi prima dello screening:', screened: 'Record sottoposti a screening', excluded: 'Record esclusi', sought: 'Report cercati per il recupero', notRetrieved: 'Report non recuperati', assessed: 'Report valutati per l’idoneità', reportsExcluded: 'Report esclusi:', included: 'Nuovi studi inclusi nella revisione', total: 'Totale incluso', reports: 'report', studies: 'studi', mainHeader: 'Identificazione di nuovi studi tramite banche dati e registri', otherHeader: 'Identificazione di nuovi studi tramite altri metodi', identification: 'Identificazione', screening: 'Screening', includedStage: 'Inclusi', credit: 'Basato su PRISMA 2020 · CC BY 4.0 · strumento indipendente', databasesOnly: 'Banche dati', registersOnly: 'Registri', websitesOnly: 'Siti web', organisationsOnly: 'Organizzazioni', citationOnly: 'Ricerca per citazioni', otherSourcesOnly: 'Altre fonti', duplicatesOnly: 'Record duplicati', automationOnly: 'Contrassegnati come non idonei da strumenti automatici', removedOtherOnly: 'Record rimossi per altri motivi', reasonFallback: 'Motivo' },
-  fr: { previous: 'Études antérieures', identified: 'Enregistrements identifiés à partir de :', databases: 'Bases de données et registres', other: 'Autres sources', removed: 'Enregistrements retirés avant la sélection :', screened: 'Enregistrements examinés', excluded: 'Enregistrements exclus', sought: 'Rapports recherchés pour récupération', notRetrieved: 'Rapports non récupérés', assessed: 'Rapports évalués pour l’éligibilité', reportsExcluded: 'Rapports exclus :', included: 'Nouvelles études incluses dans la revue', total: 'Total inclus', reports: 'rapports', studies: 'études', mainHeader: 'Identification de nouvelles études via bases et registres', otherHeader: 'Identification de nouvelles études par d’autres méthodes', identification: 'Identification', screening: 'Sélection', includedStage: 'Inclus', credit: 'Basé sur PRISMA 2020 · CC BY 4.0 · outil indépendant', databasesOnly: 'Bases de données', registersOnly: 'Registres', websitesOnly: 'Sites web', organisationsOnly: 'Organisations', citationOnly: 'Recherche par citations', otherSourcesOnly: 'Autres sources', duplicatesOnly: 'Enregistrements en double', automationOnly: 'Marqués comme non éligibles par des outils automatisés', removedOtherOnly: 'Retirés pour d’autres raisons', reasonFallback: 'Motif' },
-  de: { previous: 'Frühere Studien', identified: 'Identifizierte Datensätze aus:', databases: 'Datenbanken und Register', other: 'Weitere Quellen', removed: 'Vor dem Screening entfernte Datensätze:', screened: 'Datensätze gescreent', excluded: 'Datensätze ausgeschlossen', sought: 'Zur Beschaffung gesuchte Berichte', notRetrieved: 'Nicht beschaffte Berichte', assessed: 'Auf Eignung geprüfte Berichte', reportsExcluded: 'Ausgeschlossene Berichte:', included: 'Neu in die Übersichtsarbeit eingeschlossene Studien', total: 'Insgesamt eingeschlossen', reports: 'Berichte', studies: 'Studien', mainHeader: 'Identifikation neuer Studien über Datenbanken und Register', otherHeader: 'Identifikation neuer Studien über andere Methoden', identification: 'Identifikation', screening: 'Screening', includedStage: 'Eingeschlossen', credit: 'Basierend auf PRISMA 2020 · CC BY 4.0 · unabhängiges Werkzeug', databasesOnly: 'Datenbanken', registersOnly: 'Register', websitesOnly: 'Websites', organisationsOnly: 'Organisationen', citationOnly: 'Zitationssuche', otherSourcesOnly: 'Weitere Quellen', duplicatesOnly: 'Duplikate', automationOnly: 'Durch Automatisierungstools als nicht geeignet markiert', removedOtherOnly: 'Aus anderen Gründen entfernt', reasonFallback: 'Grund' },
-  'zh-CN': { previous: '既往纳入研究', identified: '检索识别记录来自：', databases: '数据库与注册平台', other: '其他来源', removed: '筛选前移除的记录：', screened: '已筛选记录', excluded: '排除记录', sought: '寻求获取的报告', notRetrieved: '未获取报告', assessed: '合格性评估报告', reportsExcluded: '排除的报告：', included: '综述中新纳入的研究', total: '纳入总计', reports: '份报告', studies: '项研究', mainHeader: '通过数据库和注册平台识别新研究', otherHeader: '通过其他方法识别新研究', identification: '识别', screening: '筛选', includedStage: '纳入', credit: '基于 PRISMA 2020 · CC BY 4.0 · 独立工具', databasesOnly: '数据库', registersOnly: '注册库', websitesOnly: '网站', organisationsOnly: '组织机构', citationOnly: '引文检索', otherSourcesOnly: '其他来源', duplicatesOnly: '重复记录', automationOnly: '被自动化工具标记为不合格', removedOtherOnly: '因其他原因移除', reasonFallback: '原因' },
+  'pt-BR': { previous: 'Estudos anteriores', identified: 'Registros identificados a partir de:', databases: 'Bases e registros', other: 'Outras fontes', removed: 'Registros removidos antes da triagem:', screened: 'Registros triados', excluded: 'Registros excluídos', sought: 'Relatos procurados para recuperação', notRetrieved: 'Relatos não recuperados', assessed: 'Relatos avaliados para elegibilidade', reportsExcluded: 'Relatos excluídos:', included: 'Novos estudos incluídos na revisão', total: 'Total incluído', reports: 'relatos', studies: 'estudos', mainHeader: 'Identificação de novos estudos em bases de dados e registros', otherHeader: 'Identificação de novos estudos por outros métodos', identification: 'Identificação', screening: 'Triagem', includedStage: 'Incluídos', credit: 'Baseado no PRISMA 2020 · CC BY 4.0 · PRISMA Lab | Scientata', databasesOnly: 'Bases de dados', registersOnly: 'Registros', websitesOnly: 'Sites', organisationsOnly: 'Organizações', citationOnly: 'Busca por citações', otherSourcesOnly: 'Outras fontes', duplicatesOnly: 'Registros duplicados', automationOnly: 'Marcados como inelegíveis por ferramentas de automação', removedOtherOnly: 'Removidos por outras razões', reasonFallback: 'Motivo' },
+  en: { previous: 'Previous studies', identified: 'Records identified from:', databases: 'Databases and registers', other: 'Other sources', removed: 'Records removed before screening:', screened: 'Records screened', excluded: 'Records excluded', sought: 'Reports sought for retrieval', notRetrieved: 'Reports not retrieved', assessed: 'Reports assessed for eligibility', reportsExcluded: 'Reports excluded:', included: 'New studies included in review', total: 'Total included', reports: 'reports', studies: 'studies', mainHeader: 'Identification of new studies via databases and registers', otherHeader: 'Identification of new studies via other methods', identification: 'Identification', screening: 'Screening', includedStage: 'Included', credit: 'Based on PRISMA 2020 · CC BY 4.0 · PRISMA Lab | Scientata', databasesOnly: 'Databases', registersOnly: 'Registers', websitesOnly: 'Websites', organisationsOnly: 'Organisations', citationOnly: 'Citation searching', otherSourcesOnly: 'Other sources', duplicatesOnly: 'Duplicate records', automationOnly: 'Records marked as ineligible by automation tools', removedOtherOnly: 'Records removed for other reasons', reasonFallback: 'Reason' },
+  it: { previous: 'Studi precedenti', identified: 'Record identificati da:', databases: 'Banche dati e registri', other: 'Altre fonti', removed: 'Record rimossi prima dello screening:', screened: 'Record sottoposti a screening', excluded: 'Record esclusi', sought: 'Report cercati per il recupero', notRetrieved: 'Report non recuperati', assessed: 'Report valutati per l’idoneità', reportsExcluded: 'Report esclusi:', included: 'Nuovi studi inclusi nella revisione', total: 'Totale incluso', reports: 'report', studies: 'studi', mainHeader: 'Identificazione di nuovi studi tramite banche dati e registri', otherHeader: 'Identificazione di nuovi studi tramite altri metodi', identification: 'Identificazione', screening: 'Screening', includedStage: 'Inclusi', credit: 'Basato su PRISMA 2020 · CC BY 4.0 · PRISMA Lab | Scientata', databasesOnly: 'Banche dati', registersOnly: 'Registri', websitesOnly: 'Siti web', organisationsOnly: 'Organizzazioni', citationOnly: 'Ricerca per citazioni', otherSourcesOnly: 'Altre fonti', duplicatesOnly: 'Record duplicati', automationOnly: 'Contrassegnati come non idonei da strumenti automatici', removedOtherOnly: 'Record rimossi per altri motivi', reasonFallback: 'Motivo' },
+  fr: { previous: 'Études antérieures', identified: 'Enregistrements identifiés à partir de :', databases: 'Bases de données et registres', other: 'Autres sources', removed: 'Enregistrements retirés avant la sélection :', screened: 'Enregistrements examinés', excluded: 'Enregistrements exclus', sought: 'Rapports recherchés pour récupération', notRetrieved: 'Rapports non récupérés', assessed: 'Rapports évalués pour l’éligibilité', reportsExcluded: 'Rapports exclus :', included: 'Nouvelles études incluses dans la revue', total: 'Total inclus', reports: 'rapports', studies: 'études', mainHeader: 'Identification de nouvelles études via bases et registres', otherHeader: 'Identification de nouvelles études par d’autres méthodes', identification: 'Identification', screening: 'Sélection', includedStage: 'Inclus', credit: 'Basé sur PRISMA 2020 · CC BY 4.0 · PRISMA Lab | Scientata', databasesOnly: 'Bases de données', registersOnly: 'Registres', websitesOnly: 'Sites web', organisationsOnly: 'Organisations', citationOnly: 'Recherche par citations', otherSourcesOnly: 'Autres sources', duplicatesOnly: 'Enregistrements en double', automationOnly: 'Marqués comme non éligibles par des outils automatisés', removedOtherOnly: 'Retirés pour d’autres raisons', reasonFallback: 'Motif' },
+  de: { previous: 'Frühere Studien', identified: 'Identifizierte Datensätze aus:', databases: 'Datenbanken und Register', other: 'Weitere Quellen', removed: 'Vor dem Screening entfernte Datensätze:', screened: 'Datensätze gescreent', excluded: 'Datensätze ausgeschlossen', sought: 'Zur Beschaffung gesuchte Berichte', notRetrieved: 'Nicht beschaffte Berichte', assessed: 'Auf Eignung geprüfte Berichte', reportsExcluded: 'Ausgeschlossene Berichte:', included: 'Neu in die Übersichtsarbeit eingeschlossene Studien', total: 'Insgesamt eingeschlossen', reports: 'Berichte', studies: 'Studien', mainHeader: 'Identifikation neuer Studien über Datenbanken und Register', otherHeader: 'Identifikation neuer Studien über andere Methoden', identification: 'Identifikation', screening: 'Screening', includedStage: 'Eingeschlossen', credit: 'Basierend auf PRISMA 2020 · CC BY 4.0 · PRISMA Lab | Scientata', databasesOnly: 'Datenbanken', registersOnly: 'Register', websitesOnly: 'Websites', organisationsOnly: 'Organisationen', citationOnly: 'Zitationssuche', otherSourcesOnly: 'Weitere Quellen', duplicatesOnly: 'Duplikate', automationOnly: 'Durch Automatisierungstools als nicht geeignet markiert', removedOtherOnly: 'Aus anderen Gründen entfernt', reasonFallback: 'Grund' },
+  'zh-CN': { previous: '既往纳入研究', identified: '检索识别记录来自：', databases: '数据库与注册平台', other: '其他来源', removed: '筛选前移除的记录：', screened: '已筛选记录', excluded: '排除记录', sought: '寻求获取的报告', notRetrieved: '未获取报告', assessed: '合格性评估报告', reportsExcluded: '排除的报告：', included: '综述中新纳入的研究', total: '纳入总计', reports: '份报告', studies: '项研究', mainHeader: '通过数据库和注册平台识别新研究', otherHeader: '通过其他方法识别新研究', identification: '识别', screening: '筛选', includedStage: '纳入', credit: '基于 PRISMA 2020 · CC BY 4.0 · PRISMA Lab | Scientata', databasesOnly: '数据库', registersOnly: '注册库', websitesOnly: '网站', organisationsOnly: '组织机构', citationOnly: '引文检索', otherSourcesOnly: '其他来源', duplicatesOnly: '重复记录', automationOnly: '被自动化工具标记为不合格', removedOtherOnly: '因其他原因移除', reasonFallback: '原因' },
 };
 
 function wrapLine(text: string, maxChars: number): string[] {
@@ -72,12 +72,48 @@ function boxHeight(lineCount: number, style: DiagramStyle): number {
 type Words = Record<string, string>;
 type NumberFor = (key: CountKey) => number;
 
-function databaseItems(w: Words, n: NumberFor): string[] {
-  return [`${w.databasesOnly} (n = ${n('databases')})`, `${w.registersOnly} (n = ${n('registers')})`];
+function databaseItems(w: Words, n: NumberFor, sources: PrismaProject['sources'] = [], raw: (key: CountKey) => number | null = () => 0): string[] {
+  const dbSources = (sources || []).filter((s) => s.type === 'database' && (s.name.trim().length > 0 || (s.count ?? 0) > 0));
+  const items: string[] = [];
+
+  if (dbSources.length > 0) {
+    const totalDb = dbSources.reduce((acc, s) => acc + (s.count || 0), 0);
+    items.push(`${w.databasesOnly} (n = ${totalDb}):`);
+    for (const source of dbSources) {
+      items.push(`${source.name.trim() || w.databasesOnly} (n = ${source.count || 0})`);
+    }
+  } else if (raw('databases') !== null || raw('registers') === null) {
+    items.push(`${w.databasesOnly} (n = ${n('databases')})`);
+  }
+
+  if (raw('registers') !== null) {
+    items.push(`${w.registersOnly} (n = ${n('registers')})`);
+  }
+
+  return items.length > 0 ? items : [`${w.databasesOnly} (n = 0)`];
 }
 
-function otherSourceItems(w: Words, n: NumberFor): string[] {
-  return [`${w.websitesOnly} (n = ${n('websites')})`, `${w.organisationsOnly} (n = ${n('organisations')})`, `${w.citationOnly} (n = ${n('citationSearching')})`];
+function otherSourceItems(w: Words, n: NumberFor, sources?: SourceItem[], raw?: (key: CountKey) => number | null): string[] {
+  const otherSources = (sources || []).filter((s) => s.type !== 'database');
+  if (otherSources.length > 0) {
+    return otherSources.map((source) => {
+      let defaultName = w.otherSourcesOnly;
+      if (source.type === 'website') defaultName = w.websitesOnly;
+      else if (source.type === 'organisation') defaultName = w.organisationsOnly;
+      else if (source.type === 'citation') defaultName = w.citationOnly;
+      const label = source.name.trim() || defaultName;
+      return `${label} (n = ${source.count || 0})`;
+    });
+  }
+
+  const items: string[] = [];
+  if (raw) {
+    if (raw('websites') !== null) items.push(`${w.websitesOnly} (n = ${n('websites')})`);
+    if (raw('organisations') !== null) items.push(`${w.organisationsOnly} (n = ${n('organisations')})`);
+    if (raw('citationSearching') !== null) items.push(`${w.citationOnly} (n = ${n('citationSearching')})`);
+    if (raw('otherSources') !== null) items.push(`${w.otherSourcesOnly} (n = ${n('otherSources')})`);
+  }
+  return items;
 }
 
 function removedItems(w: Words, n: NumberFor, raw: (key: CountKey) => number | null): string[] {
@@ -158,23 +194,25 @@ function getClassicNodes(project: PrismaProject, locale: Locale): DiagramNode[] 
   let top = 115;
 
   if (updated) {
-    const lines = buildLines(w.previous, [`${n('previousStudies')} ${w.studies} · ${n('previousReports')} ${w.reports}`], colWidth, style);
+    const lines = buildLines(w.previous, [`${w.studies}: n = ${n('previousStudies')}`, `${w.reports}: n = ${n('previousReports')}`], colWidth, style);
     const height = boxHeight(lines.length, style);
-    nodes.push({ id: 'previousStudies', field: 'previousStudies', x: 70, y: 95, width: colWidth, height, lines, value: n('previousStudies'), kind: 'previous' });
-    top = 95 + height + gap;
+    nodes.push({ id: 'previousStudies', field: 'previousStudies', x: 70, y: top, width: colWidth, height, lines, value: n('previousStudies'), kind: 'previous' });
+    top += height + gap;
   }
 
   const identifiedTop = top;
   top = pairRowCentered(nodes, top, gap, 70, 366, colWidth, style,
-    { id: 'identified-main', field: 'databases', header: w.identified, items: databaseItems(w, n), value: n('databases') + n('registers') },
+    { id: 'identified-main', field: 'databases', header: w.identified, items: databaseItems(w, n, project.sources, raw), value: n('databases') + n('registers') },
     { id: 'removed', field: 'duplicates', header: w.removed, items: removedItems(w, n, raw), value: n('duplicates') + n('automationExcluded') + n('removedOther'), kind: 'side' },
   );
 
   if (other) {
-    const otherLines = buildLines(w.identified, otherSourceItems(w, n), colWidth, style);
+    const otherLines = buildLines(w.identified, otherSourceItems(w, n, project.sources, raw), colWidth, style);
     const otherHeight = boxHeight(otherLines.length, style);
     const otherY = identifiedTop - 10;
-    nodes.push({ id: 'identified-other', field: 'websites', x: 662, y: otherY, width: colWidth, height: otherHeight, lines: otherLines, value: n('websites') + n('organisations') + n('citationSearching') + n('otherSources'), kind: 'other' });
+    const otherSourcesCount = (project.sources || []).filter((s) => s.type !== 'database').reduce((acc, s) => acc + (s.count || 0), 0);
+    const otherVal = otherSourcesCount > 0 ? otherSourcesCount : (n('websites') + n('organisations') + n('citationSearching') + n('otherSources'));
+    nodes.push({ id: 'identified-other', field: 'websites', x: 662, y: otherY, width: colWidth, height: otherHeight, lines: otherLines, value: otherVal, kind: 'other' });
     appendOtherPipeline(pairRowCentered, nodes, otherY + otherHeight + gap, gap, 662, 958, colWidth, style, project, w, n);
   }
 
@@ -228,19 +266,21 @@ function getModernNodes(project: PrismaProject, locale: Locale): DiagramNode[] {
   if (updated) {
     const lines = buildLines(w.previous, [`${n('previousStudies')} ${w.studies} · ${n('previousReports')} ${w.reports}`], width, style);
     const height = boxHeight(lines.length, style);
-    nodes.push({ id: 'previousStudies', field: 'previousStudies', x: mainX, y, width, height, lines, value: n('previousStudies'), kind: 'previous' });
+    nodes.push({ id: 'previousStudies', field: 'previousStudies', x: mainX, y, width, height, lines: lines, value: n('previousStudies'), kind: 'previous' });
     y += height + gap;
   }
 
   const identifiedY = y;
   y = pairRowTopAligned(nodes, identifiedY, gap, mainX, sideX, width, style,
-    { id: 'identified-main', field: 'databases', header: w.identified, items: databaseItems(w, n), value: n('databases') + n('registers') },
+    { id: 'identified-main', field: 'databases', header: w.identified, items: databaseItems(w, n, project.sources, raw), value: n('databases') + n('registers') },
   );
 
   if (other) {
-    const otherLines = buildLines(w.identified, otherSourceItems(w, n), width, style);
+    const otherLines = buildLines(w.identified, otherSourceItems(w, n, project.sources, raw), width, style);
     const otherHeight = boxHeight(otherLines.length, style);
-    nodes.push({ id: 'identified-other', field: 'websites', x: otherX, y: identifiedY, width, height: otherHeight, lines: otherLines, value: n('websites') + n('organisations') + n('citationSearching') + n('otherSources'), kind: 'other' });
+    const otherSourcesCount = (project.sources || []).filter((s) => s.type !== 'database').reduce((acc, s) => acc + (s.count || 0), 0);
+    const otherVal = otherSourcesCount > 0 ? otherSourcesCount : (n('websites') + n('organisations') + n('citationSearching') + n('otherSources'));
+    nodes.push({ id: 'identified-other', field: 'websites', x: otherX, y: identifiedY, width, height: otherHeight, lines: otherLines, value: otherVal, kind: 'other' });
     appendOtherPipeline(pairRowTopAligned, nodes, identifiedY + otherHeight + gap, gap, otherX, otherSideX, width, style, project, w, n);
   }
 

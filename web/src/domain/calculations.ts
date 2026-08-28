@@ -20,6 +20,28 @@ export function calculateProject(project: PrismaProject): CalculatedCounts {
   const origins = Object.fromEntries(countKeys.map((key) => [key, 'informed'])) as CalculatedCounts['origins'];
   const formulas: CalculatedCounts['formulas'] = {};
 
+  const dbSources = (project.sources || []).filter((s) => s.type === 'database');
+  if (dbSources.length > 0) {
+    const dbSum = dbSources.reduce((acc, s) => acc + (s.count || 0), 0);
+    const override = project.overrides.databases;
+    values.databases = override ? override.value : dbSum;
+    origins.databases = override ? 'override' : 'derived';
+    formulas.databases = `${dbSources.map((s) => `${s.name.trim() || 'Base'}: ${s.count || 0}`).join(' + ')} = ${dbSum}`;
+  }
+
+  const otherSourcesList = (project.sources || []).filter((s) => s.type !== 'database');
+  if (otherSourcesList.length > 0) {
+    const webSum = otherSourcesList.filter((s) => s.type === 'website').reduce((acc, s) => acc + (s.count || 0), 0);
+    const orgSum = otherSourcesList.filter((s) => s.type === 'organisation').reduce((acc, s) => acc + (s.count || 0), 0);
+    const citSum = otherSourcesList.filter((s) => s.type === 'citation').reduce((acc, s) => acc + (s.count || 0), 0);
+    const othSum = otherSourcesList.filter((s) => s.type === 'other').reduce((acc, s) => acc + (s.count || 0), 0);
+
+    if (otherSourcesList.some((s) => s.type === 'website')) values.websites = webSum;
+    if (otherSourcesList.some((s) => s.type === 'organisation')) values.organisations = orgSum;
+    if (otherSourcesList.some((s) => s.type === 'citation')) values.citationSearching = citSum;
+    if (otherSourcesList.some((s) => s.type === 'other')) values.otherSources = othSum;
+  }
+
   const derive = (key: CountKey, value: number, formula: string, applicable = true) => {
     if (!applicable) {
       values[key] = null;
@@ -34,7 +56,9 @@ export function calculateProject(project: PrismaProject): CalculatedCounts {
   };
 
   const otherTotal = hasOtherSources(project.model)
-    ? number(values.websites) + number(values.organisations) + number(values.citationSearching) + number(values.otherSources)
+    ? (otherSourcesList.length > 0
+        ? otherSourcesList.reduce((acc, s) => acc + (s.count || 0), 0)
+        : number(values.websites) + number(values.organisations) + number(values.citationSearching) + number(values.otherSources))
     : 0;
   const identified = number(values.databases) + number(values.registers) + otherTotal;
   const removed = number(values.duplicates) + number(values.automationExcluded) + number(values.removedOther);

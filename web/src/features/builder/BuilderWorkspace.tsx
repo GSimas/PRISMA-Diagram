@@ -7,52 +7,26 @@ import { useProjectStore } from '../../app/store';
 import { calculateProject, emptyCounts, hasOtherSources, isUpdatedModel, selectModel } from '../../domain/calculations';
 import { createExampleChecklist, createChecklist } from '../../domain/checklist';
 import { createProject } from '../../domain/project';
-import { countKeys, type CountKey, type NodeProvenance, type PrismaProject, type ValidationIssue } from '../../domain/types';
+import { countKeys, type CountKey, type NodeProvenance, type PrismaProject, type SourceItem, type ValidationIssue } from '../../domain/types';
 import { validateProject } from '../../domain/validation';
+import { fieldDefinitions, fieldLabels, type TranslationKey } from '../../i18n/translations';
 import { getProject, saveProject } from '../../storage/db';
 import { PrismaDiagram, type DiagramStage } from './PrismaDiagram';
 import { ChecklistPanel } from '../checklist/ChecklistPanel';
 import { ExportPanel } from '../export/ExportPanel';
 import { ImportWizard } from '../import/ImportWizard';
 
-const fieldSections: { title: string; slug: string; fields: CountKey[] }[] = [
-  { title: 'Estudos anteriores', slug: 'previous', fields: ['previousStudies', 'previousReports'] },
-  { title: 'Identificação', slug: 'identification', fields: ['databases', 'registers', 'websites', 'organisations', 'citationSearching', 'otherSources'] },
-  { title: 'Removidos antes da triagem', slug: 'removed', fields: ['duplicates', 'automationExcluded', 'removedOther'] },
-  { title: 'Triagem e recuperação', slug: 'screening', fields: ['screened', 'recordsExcluded', 'reportsSought', 'reportsNotRetrieved'] },
-  { title: 'Elegibilidade', slug: 'eligibility', fields: ['reportsAssessed', 'reportsExcluded'] },
-  { title: 'Identificação de novos estudos por outros métodos', slug: 'other-methods', fields: ['otherReportsSought', 'otherReportsNotRetrieved', 'otherReportsAssessed', 'otherReportsExcluded'] },
-  { title: 'Inclusão', slug: 'included', fields: ['newStudies', 'newReports', 'totalStudies', 'totalReports'] },
+const fieldSections: { titleKey: TranslationKey; slug: string; fields: CountKey[] }[] = [
+  { titleKey: 'sectionPrevious', slug: 'previous', fields: ['previousStudies', 'previousReports'] },
+  { titleKey: 'sectionIdentification', slug: 'identification', fields: ['databases'] },
+  { titleKey: 'sectionRemoved', slug: 'removed', fields: ['duplicates', 'automationExcluded', 'removedOther'] },
+  { titleKey: 'sectionScreening', slug: 'screening', fields: ['screened', 'recordsExcluded', 'reportsSought', 'reportsNotRetrieved'] },
+  { titleKey: 'sectionEligibility', slug: 'eligibility', fields: ['reportsAssessed', 'reportsExcluded'] },
+  { titleKey: 'sectionOtherMethods', slug: 'other-methods', fields: ['otherReportsSought', 'otherReportsNotRetrieved', 'otherReportsAssessed', 'otherReportsExcluded'] },
+  { titleKey: 'sectionInclusion', slug: 'sectionInclusion', fields: ['newStudies', 'newReports', 'totalStudies', 'totalReports'] },
 ];
 
 const optionalFields: CountKey[] = ['automationExcluded', 'removedOther'];
-
-const labels: Record<CountKey, string> = {
-  previousStudies: 'Estudos incluídos na versão anterior', previousReports: 'Relatos da versão anterior',
-  databases: 'Registros identificados em bases', registers: 'Registros identificados em registros',
-  websites: 'Registros ou relatos em sites', organisations: 'Registros ou relatos em organizações',
-  citationSearching: 'Busca por citações', otherSources: 'Outras fontes',
-  duplicates: 'Duplicatas removidas', automationExcluded: 'Marcados como inelegíveis por automação',
-  removedOther: 'Removidos por outras razões', screened: 'Registros triados',
-  recordsExcluded: 'Registros excluídos', reportsSought: 'Relatos procurados para recuperação',
-  reportsNotRetrieved: 'Relatos não recuperados', reportsAssessed: 'Relatos avaliados para elegibilidade',
-  reportsExcluded: 'Relatos excluídos', newStudies: 'Novos estudos incluídos',
-  newReports: 'Relatos dos novos estudos', totalStudies: 'Total de estudos incluídos', totalReports: 'Total de relatos incluídos',
-  otherReportsSought: 'Relatos procurados (outros métodos)', otherReportsNotRetrieved: 'Relatos não recuperados (outros métodos)',
-  otherReportsAssessed: 'Relatos avaliados para elegibilidade (outros métodos)', otherReportsExcluded: 'Relatos excluídos (outros métodos)',
-};
-
-const definitions: Partial<Record<CountKey, string>> = {
-  databases: 'Registros identificados em bases bibliográficas antes da remoção de duplicatas.',
-  registers: 'Registros identificados em registros de estudos ou ensaios.',
-  screened: 'Registros únicos examinados por título, resumo ou outra triagem inicial.',
-  reportsSought: 'Documentos em texto completo que se procurou recuperar para avaliação.',
-  reportsAssessed: 'Relatos recuperados e avaliados contra os critérios de elegibilidade.',
-  newStudies: 'Estudos únicos incluídos na revisão atual; um estudo pode ter mais de um relato.',
-  newReports: 'Relatos que descrevem os novos estudos incluídos.',
-  otherReportsSought: 'Documentos em texto completo procurados a partir de sites, organizações ou busca por citações.',
-  otherReportsAssessed: 'Relatos de outros métodos recuperados e avaliados contra os critérios de elegibilidade.',
-};
 
 export function BuilderWorkspace() {
   const { ready, locale, t } = useApp();
@@ -64,8 +38,12 @@ export function BuilderWorkspace() {
   const [confirmClear, setConfirmClear] = useState(false);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const flashTimeoutRef = useRef<number | undefined>(undefined);
+
+  const labels = fieldLabels[locale] || fieldLabels['pt-BR'];
+  const definitions = fieldDefinitions[locale] || fieldDefinitions['pt-BR'];
+
   const calculated = useMemo(() => calculateProject(project), [project]);
-  const issues = useMemo(() => validateProject(project), [project]);
+  const issues = useMemo(() => validateProject(project, locale), [project, locale]);
 
   const focusById = (id: string) => {
     const el = document.getElementById(id);
@@ -80,8 +58,16 @@ export function BuilderWorkspace() {
     flashTimeoutRef.current = window.setTimeout(() => el.classList.remove('field-flash'), 1600);
   };
 
-  const focusField = (field: CountKey) => {
+  const focusField = (field: CountKey, nodeId?: string) => {
     setSelected(field);
+    if (field === 'websites' || nodeId === 'identified-other' || field === 'organisations' || field === 'citationSearching' || field === 'otherSources') {
+      focusById('block-other-sources');
+      return;
+    }
+    if (field === 'databases' || nodeId === 'identified-main') {
+      focusById('field-databases');
+      return;
+    }
     focusById(`field-${field}`);
   };
 
@@ -148,6 +134,156 @@ export function BuilderWorkspace() {
     }
   };
 
+  const databaseSources = (project.sources || []).filter((s) => s.type === 'database');
+  const popularDatabases = ['Web of Science', 'Scopus', 'PubMed', 'Embase', 'SciELO', 'Cochrane Library', 'Google Scholar'];
+
+  const addDatabaseSource = (name = '') => {
+    const newSource: SourceItem = {
+      id: crypto.randomUUID(),
+      type: 'database',
+      name,
+      count: 0,
+    };
+    const nextSources = [...(project.sources || []), newSource];
+    patchProject({ sources: nextSources }, 'Base de dados adicionada');
+  };
+
+  const updateDatabaseSource = (id: string, patch: Partial<SourceItem>) => {
+    const nextSources = (project.sources || []).map((s) => (s.id === id ? { ...s, ...patch } : s));
+    patchProject({ sources: nextSources }, 'Base de dados atualizada');
+  };
+
+  const removeDatabaseSource = (id: string) => {
+    const nextSources = (project.sources || []).filter((s) => s.id !== id);
+    patchProject({ sources: nextSources }, 'Base de dados removida');
+  };
+
+  const otherSourcesList = (project.sources || []).filter((s) => s.type !== 'database');
+
+  const addOtherSource = (type: SourceItem['type'] = 'other', defaultName = '') => {
+    let name = defaultName;
+    if (!name) {
+      if (type === 'website') name = t('addWebsite');
+      else if (type === 'organisation') name = t('addOrganisation');
+      else if (type === 'citation') name = t('addCitation');
+      else name = '';
+    }
+    const newSource: SourceItem = {
+      id: crypto.randomUUID(),
+      type,
+      name,
+      count: 0,
+    };
+    const nextSources = [...(project.sources || []), newSource];
+    patchProject({ sources: nextSources }, 'Fonte adicionada');
+  };
+
+  const updateOtherSource = (id: string, patch: Partial<SourceItem>) => {
+    const nextSources = (project.sources || []).map((s) => (s.id === id ? { ...s, ...patch } : s));
+    patchProject({ sources: nextSources }, 'Fonte atualizada');
+  };
+
+  const removeOtherSource = (id: string) => {
+    const nextSources = (project.sources || []).filter((s) => s.id !== id);
+    patchProject({ sources: nextSources }, 'Fonte removida');
+  };
+
+  const renderOtherSourcesBlock = (blockId = 'block-other-sources') => {
+    if (!hasOtherSources(project.model)) return null;
+    const totalOther = otherSourcesList.reduce((acc, s) => acc + (s.count || 0), 0);
+
+    return (
+      <div id={blockId} className="database-sources-block other-sources-block">
+        <div className="database-sources-header">
+          <h4>{t('otherMethodsSources')}</h4>
+          {otherSourcesList.length > 0 && (
+            <span className="database-count-badge">
+              {t('totalFromOtherSources')}: {totalOther}
+            </span>
+          )}
+        </div>
+
+        <div className="database-chips-container">
+          <span className="chips-label">{t('quickSuggestions')}</span>
+          <div className="database-chips">
+            <button
+              type="button"
+              className="database-chip"
+              onClick={() => addOtherSource('website', t('addWebsite'))}
+              title={`+ ${t('addWebsite')}`}
+            >
+              + {t('addWebsite')}
+            </button>
+            <button
+              type="button"
+              className="database-chip"
+              onClick={() => addOtherSource('organisation', t('addOrganisation'))}
+              title={`+ ${t('addOrganisation')}`}
+            >
+              + {t('addOrganisation')}
+            </button>
+            <button
+              type="button"
+              className="database-chip"
+              onClick={() => addOtherSource('citation', t('addCitation'))}
+              title={`+ ${t('addCitation')}`}
+            >
+              + {t('addCitation')}
+            </button>
+            <button
+              type="button"
+              className="database-chip"
+              onClick={() => addOtherSource('other', '')}
+              title={`+ ${t('addCustomSource')}`}
+            >
+              + {t('addCustomSource')}
+            </button>
+          </div>
+        </div>
+
+        {otherSourcesList.length > 0 && (
+          <div className="database-items-list">
+            {otherSourcesList.map((source) => (
+              <div key={source.id} className="database-item-row">
+                <input
+                  aria-label={t('sourceNamePlaceholder')}
+                  placeholder={t('sourceNamePlaceholder')}
+                  value={source.name}
+                  onChange={(event) => updateOtherSource(source.id, { name: event.target.value })}
+                />
+                <input
+                  aria-label={t('count')}
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={source.count === 0 ? '' : source.count}
+                  onChange={(event) => updateOtherSource(source.id, { count: event.target.value === '' ? 0 : Math.max(0, Number(event.target.value)) })}
+                />
+                <button
+                  type="button"
+                  className="remove-btn"
+                  aria-label={t('removeSource')}
+                  title={t('removeSource')}
+                  onClick={() => removeOtherSource(source.id)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          className="text-button add-database-btn"
+          type="button"
+          onClick={() => addOtherSource('other', '')}
+        >
+          + {t('addOtherSource')}
+        </button>
+      </div>
+    );
+  };
+
   return (
     <main id="main-content" className="builder-page" data-app-ready={ready ? 'true' : 'false'} aria-busy={!ready}>
       <header className="builder-project-header">
@@ -162,16 +298,16 @@ export function BuilderWorkspace() {
         <button type="button" onClick={undo} disabled={!past.length} title={t('undo')}><Undo2 /><span>{t('undo')}</span></button>
         <button type="button" onClick={redo} disabled={!future.length} title={t('redo')}><Redo2 /><span>{t('redo')}</span></button>
         <span className="toolbar-divider" />
-        <button type="button" onClick={() => setZoom((value) => Math.max(.45, value - .1))} title="Reduzir zoom"><ZoomOut /><span>−</span></button>
-        <output aria-label="Nível de zoom">{Math.round(zoom * 100)}%</output>
-        <button type="button" onClick={() => setZoom((value) => Math.min(1.5, value + .1))} title="Aumentar zoom"><ZoomIn /><span>+</span></button>
-        <button type="button" onClick={() => setZoom(.82)} title={t('fit')}><Focus /><span>{t('fit')}</span></button>
+        <button type="button" onClick={() => setZoom((value) => Math.max(0.45, value - 0.1))} title={t('zoomOut')}><ZoomOut /><span>−</span></button>
+        <output aria-label={t('zoomLevel')}>{Math.round(zoom * 100)}%</output>
+        <button type="button" onClick={() => setZoom((value) => Math.min(1.5, value + 0.1))} title={t('zoomIn')}><ZoomIn /><span>+</span></button>
+        <button type="button" onClick={() => setZoom(0.82)} title={t('fit')}><Focus /><span>{t('fit')}</span></button>
         <button type="button" onClick={() => workspaceRef.current?.requestFullscreen()} title={t('fullscreen')}><Maximize2 /><span>{t('fullscreen')}</span></button>
         <button type="button" onClick={() => setTab('export')} title={t('export')}><Download /><span>{t('export')}</span></button>
         <button type="button" onClick={() => window.print()} title={t('printPreview')}><FileCheck2 /><span>{t('printPreview')}</span></button>
-        <a href="/learn" title="Ajuda metodológica"><HelpCircle /><span>Ajuda</span></a>
-        <button type="button" onClick={() => setConfirmClear(true)} title="Limpar todos os dados do projeto"><Trash2 /><span>Limpar tudo</span></button>
-        <button type="button" onClick={loadExample} title="Carregar exemplo preenchido nas abas Dados e Checklist"><Sparkles /><span>Exemplo</span></button>
+        <a href="/learn" title={t('help')}><HelpCircle /><span>{t('help')}</span></a>
+        <button type="button" onClick={() => setConfirmClear(true)} title={t('clearAll')}><Trash2 /><span>{t('clearAll')}</span></button>
+        <button type="button" onClick={loadExample} title={t('example')}><Sparkles /><span>{t('example')}</span></button>
       </div>
 
       <div className="builder-tabs" role="tablist" aria-label="Módulos do construtor">
@@ -189,12 +325,12 @@ export function BuilderWorkspace() {
         <div className="builder-workspace" ref={workspaceRef}>
           <aside className="data-panel" aria-label="Preenchimento do diagrama">
             <section className="project-setup">
-              <h2>Configuração do projeto</h2>
+              <h2>{t('projectSetup')}</h2>
               <label id="project-title-field">{t('title')}<input value={project.title} onChange={(event) => patchProject({ title: event.target.value })} /></label>
-              <label>{t('authors')}<input value={project.authors.join('; ')} onChange={(event) => patchProject({ authors: event.target.value.split(';').map((value) => value.trim()).filter(Boolean) })} placeholder="Separados por ponto e vírgula" /></label>
+              <label>{t('authors')}<input value={project.authors.join('; ')} onChange={(event) => patchProject({ authors: event.target.value.split(';').map((value) => value.trim()).filter(Boolean) })} placeholder={t('authorsPlaceholder')} /></label>
               <label>{t('institution')}<input value={project.institution} onChange={(event) => patchProject({ institution: event.target.value })} /></label>
               <label>{t('protocol')}<input type="url" value={project.protocolUrl} onChange={(event) => patchProject({ protocolUrl: event.target.value })} /></label>
-              <fieldset id="model-fieldset"><legend>Tipo do fluxo</legend>
+              <fieldset id="model-fieldset"><legend>{t('flowType')}</legend>
                 <label className="check-row"><input type="radio" name="review-kind" checked={project.reviewKind === 'new'} onChange={() => setReviewKind('new')} /> {t('newReview')}</label>
                 <label className="check-row"><input type="radio" name="review-kind" checked={project.reviewKind === 'updated'} onChange={() => setReviewKind('updated')} /> {t('updatedReview')}</label>
                 <label className="check-row"><input type="checkbox" checked={hasOtherSources(project.model)} onChange={(event) => setOtherSources(event.target.checked)} /> {t('otherSources')}</label>
@@ -202,29 +338,102 @@ export function BuilderWorkspace() {
             </section>
             {fieldSections.map((section) => {
               const fields = section.fields.filter(applicable);
-              if (!fields.length) return null;
+              if (!fields.length && section.slug !== 'other-methods') return null;
+              if (!fields.length && section.slug === 'other-methods' && !hasOtherSources(project.model)) return null;
               return (
-                <details className="form-section" id={`section-${section.slug}`} key={section.title} open={section.title === 'Identificação'}>
-                  <summary>{section.title}<span>{fields.filter((field) => calculated.values[field] !== null).length}/{fields.length}</span></summary>
+                <details className="form-section" id={`section-${section.slug}`} key={section.slug} open={section.slug === 'identification' || section.slug === 'other-methods'}>
+                  <summary>{t(section.titleKey)}<span>{fields.filter((field) => calculated.values[field] !== null).length}/{fields.length}</span></summary>
                   <div>
+                    {section.slug === 'other-methods' && renderOtherSourcesBlock()}
                     {fields.map((field) => {
                       const origin = calculated.origins[field];
                       const fieldIssues = issues.filter((item) => item.location === field);
                       const optional = optionalFields.includes(field);
                       return (
-                        <label className={`count-field ${origin}`} key={field} id={`field-${field}`}>
-                          <span>{labels[field]}<small>{origin === 'derived' ? t('derived') : origin === 'override' ? t('override') : t('informed')}{optional ? ' · opcional' : ''}</small></span>
-                          <input
-                            type="number" min="0" step="1" inputMode="numeric" value={calculated.values[field] ?? ''}
-                            disabled={origin === 'derived'} aria-invalid={fieldIssues.some((item) => item.status === 'inconsistency' || item.status === 'missing')}
-                            onFocus={() => setSelected(field)}
-                            onChange={(event) => origin === 'override'
-                              ? patchProject({ overrides: { ...project.overrides, [field]: { ...project.overrides[field]!, value: event.target.value === '' ? 0 : Number(event.target.value) } } })
-                              : updateCount(field, event.target.value === '' ? null : Number(event.target.value))}
-                          />
-                          {calculated.formulas[field] && <small className="formula">{calculated.formulas[field]}</small>}
-                          {fieldIssues[0] && <small className="field-error">{fieldIssues[0].title}</small>}
-                        </label>
+                        <div key={field} style={{ display: 'grid', gap: '.4rem' }}>
+                          <label className={`count-field ${origin}`} id={`field-${field}`}>
+                            <span>{labels[field]}<small>{origin === 'derived' ? t('derived') : origin === 'override' ? t('override') : t('informed')}{optional ? ` · ${t('optional')}` : ''}</small></span>
+                            <input
+                              type="number" min="0" step="1" inputMode="numeric" value={calculated.values[field] ?? ''}
+                              disabled={origin === 'derived'} aria-invalid={fieldIssues.some((item) => item.status === 'inconsistency' || item.status === 'missing')}
+                              onFocus={() => setSelected(field)}
+                              onChange={(event) => origin === 'override'
+                                ? patchProject({ overrides: { ...project.overrides, [field]: { ...project.overrides[field]!, value: event.target.value === '' ? 0 : Number(event.target.value) } } })
+                                : updateCount(field, event.target.value === '' ? null : Number(event.target.value))}
+                            />
+                            {calculated.formulas[field] && <small className="formula">{calculated.formulas[field]}</small>}
+                            {fieldIssues[0] && <small className="field-error">{fieldIssues[0].title}</small>}
+                          </label>
+                          {field === 'databases' && (
+                            <div className="database-sources-block">
+                              <div className="database-sources-header">
+                                <h4>{t('specificDatabases')}</h4>
+                                {databaseSources.length > 0 && (
+                                  <span className="database-count-badge">
+                                    {t('totalFromDatabases')}: {databaseSources.reduce((acc, s) => acc + (s.count || 0), 0)}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="database-chips-container">
+                                <span className="chips-label">{t('quickSuggestions')}</span>
+                                <div className="database-chips">
+                                  {popularDatabases.map((dbName) => (
+                                    <button
+                                      key={dbName}
+                                      type="button"
+                                      className="database-chip"
+                                      onClick={() => addDatabaseSource(dbName)}
+                                      title={`+ ${dbName}`}
+                                    >
+                                      + {dbName}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {databaseSources.length > 0 && (
+                                <div className="database-items-list">
+                                  {databaseSources.map((source) => (
+                                    <div key={source.id} className="database-item-row">
+                                      <input
+                                        aria-label={t('databaseNamePlaceholder')}
+                                        placeholder={t('databaseNamePlaceholder')}
+                                        value={source.name}
+                                        onChange={(event) => updateDatabaseSource(source.id, { name: event.target.value })}
+                                      />
+                                      <input
+                                        aria-label={t('count')}
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={source.count === 0 ? '' : source.count}
+                                        onChange={(event) => updateDatabaseSource(source.id, { count: event.target.value === '' ? 0 : Math.max(0, Number(event.target.value)) })}
+                                      />
+                                      <button
+                                        type="button"
+                                        className="remove-btn"
+                                        aria-label={t('removeDatabase')}
+                                        title={t('removeDatabase')}
+                                        onClick={() => removeDatabaseSource(source.id)}
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <button
+                                className="text-button add-database-btn"
+                                type="button"
+                                onClick={() => addDatabaseSource('')}
+                              >
+                                + {t('addDatabase')}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -232,24 +441,24 @@ export function BuilderWorkspace() {
               );
             })}
             <section className="reasons-editor">
-              <h2>Razões de exclusão</h2>
+              <h2>{t('exclusionReasons')}</h2>
               {project.exclusionReasons.map((reason) => (
                 <div key={reason.id}>
-                  <input aria-label="Razão" value={reason.label} onChange={(event) => patchProject({ exclusionReasons: project.exclusionReasons.map((item) => item.id === reason.id ? { ...item, label: event.target.value } : item) })} />
-                  <input aria-label="Contagem" type="number" min="0" value={reason.count} onChange={(event) => patchProject({ exclusionReasons: project.exclusionReasons.map((item) => item.id === reason.id ? { ...item, count: Number(event.target.value) } : item) })} />
-                  <button type="button" aria-label="Remover razão" onClick={() => patchProject({ exclusionReasons: project.exclusionReasons.filter((item) => item.id !== reason.id) })}>×</button>
+                  <input aria-label={t('reason')} placeholder={t('reason')} value={reason.label} onChange={(event) => patchProject({ exclusionReasons: project.exclusionReasons.map((item) => item.id === reason.id ? { ...item, label: event.target.value } : item) })} />
+                  <input aria-label={t('count')} type="number" min="0" value={reason.count} onChange={(event) => patchProject({ exclusionReasons: project.exclusionReasons.map((item) => item.id === reason.id ? { ...item, count: Number(event.target.value) } : item) })} />
+                  <button type="button" aria-label={t('removeReason')} title={t('removeReason')} onClick={() => patchProject({ exclusionReasons: project.exclusionReasons.filter((item) => item.id !== reason.id) })}>×</button>
                 </div>
               ))}
               <button className="text-button" type="button" onClick={() => patchProject({ exclusionReasons: [...project.exclusionReasons, { id: crypto.randomUUID(), label: '', count: 0 }] })}>+ {t('addReason')}</button>
             </section>
             {hasOtherSources(project.model) && (
               <section className="reasons-editor">
-                <h2>Razões de exclusão — outros métodos</h2>
+                <h2>{t('exclusionReasonsOther')}</h2>
                 {project.otherExclusionReasons.map((reason) => (
                   <div key={reason.id}>
-                    <input aria-label="Razão" value={reason.label} onChange={(event) => patchProject({ otherExclusionReasons: project.otherExclusionReasons.map((item) => item.id === reason.id ? { ...item, label: event.target.value } : item) })} />
-                    <input aria-label="Contagem" type="number" min="0" value={reason.count} onChange={(event) => patchProject({ otherExclusionReasons: project.otherExclusionReasons.map((item) => item.id === reason.id ? { ...item, count: Number(event.target.value) } : item) })} />
-                    <button type="button" aria-label="Remover razão" onClick={() => patchProject({ otherExclusionReasons: project.otherExclusionReasons.filter((item) => item.id !== reason.id) })}>×</button>
+                    <input aria-label={t('reason')} placeholder={t('reason')} value={reason.label} onChange={(event) => patchProject({ otherExclusionReasons: project.otherExclusionReasons.map((item) => item.id === reason.id ? { ...item, label: event.target.value } : item) })} />
+                    <input aria-label={t('count')} type="number" min="0" value={reason.count} onChange={(event) => patchProject({ otherExclusionReasons: project.otherExclusionReasons.map((item) => item.id === reason.id ? { ...item, count: Number(event.target.value) } : item) })} />
+                    <button type="button" aria-label={t('removeReason')} title={t('removeReason')} onClick={() => patchProject({ otherExclusionReasons: project.otherExclusionReasons.filter((item) => item.id !== reason.id) })}>×</button>
                   </div>
                 ))}
                 <button className="text-button" type="button" onClick={() => patchProject({ otherExclusionReasons: [...project.otherExclusionReasons, { id: crypto.randomUUID(), label: '', count: 0 }] })}>+ {t('addReason')}</button>
@@ -267,33 +476,33 @@ export function BuilderWorkspace() {
             </div>
             <PrismaDiagram project={project} locale={locale} selected={selected} onSelect={focusField} onSelectStage={focusStage} zoom={zoom} />
             <details className="diagram-alternative">
-              <summary>Alternativa textual e tabular</summary>
-              <table><thead><tr><th>Etapa</th><th>Valor</th><th>Origem</th></tr></thead><tbody>{countKeys.filter(applicable).map((field) => <tr key={field}><th>{labels[field]}</th><td>{calculated.values[field] ?? '—'}</td><td>{calculated.origins[field]}</td></tr>)}</tbody></table>
+              <summary>{t('tabularAlternative')}</summary>
+              <table><thead><tr><th>{t('stage')}</th><th>{t('value')}</th><th>{t('origin')}</th></tr></thead><tbody>{countKeys.filter(applicable).map((field) => <tr key={field}><th>{labels[field]}</th><td>{calculated.values[field] ?? '—'}</td><td>{calculated.origins[field]}</td></tr>)}</tbody></table>
             </details>
           </section>
 
           <aside className="context-panel" aria-label="Detalhes e validação">
             <section className="selected-node">
-              <p className="kicker">NÓ SELECIONADO</p><h2>{labels[selected]}</h2>
-              <p>{definitions[selected] ?? 'Contagem semântica do fluxo PRISMA 2020. Confirme a unidade antes de preencher.'}</p>
-              <dl><div><dt>Valor</dt><dd>{calculated.values[selected] ?? '—'}</dd></div><div><dt>Origem</dt><dd>{calculated.origins[selected]}</dd></div><div><dt>Memória</dt><dd>{calculated.formulas[selected] ?? 'Valor informado diretamente.'}</dd></div></dl>
+              <p className="kicker">{t('selectedNode')}</p><h2>{labels[selected]}</h2>
+              <p>{definitions[selected] ?? t('defaultDefinition')}</p>
+              <dl><div><dt>{t('value')}</dt><dd>{calculated.values[selected] ?? '—'}</dd></div><div><dt>{t('origin')}</dt><dd>{calculated.origins[selected]}</dd></div><div><dt>{t('formula')}</dt><dd>{calculated.formulas[selected] ?? t('directValue')}</dd></div></dl>
               {(selectedOrigin === 'derived' || selectedOrigin === 'override') && (
                 <div className="override-box">
-                  <button type="button" className="text-button" onClick={toggleOverride}>{selectedOverride ? 'Restaurar cálculo automático' : 'Desbloquear valor derivado'}</button>
-                  {selectedOverride && <><label>Valor manual<input type="number" min="0" value={selectedOverride.value} onChange={(event) => patchProject({ overrides: { ...project.overrides, [selected]: { ...selectedOverride, value: Number(event.target.value) } } })} /></label><label>Justificativa obrigatória<textarea value={selectedOverride.justification} onChange={(event) => patchProject({ overrides: { ...project.overrides, [selected]: { ...selectedOverride, justification: event.target.value } } })} /></label></>}
+                  <button type="button" className="text-button" onClick={toggleOverride}>{selectedOverride ? t('restoreCalculation') : t('unlockDerived')}</button>
+                  {selectedOverride && <><label>{t('manualValue')}<input type="number" min="0" value={selectedOverride.value} onChange={(event) => patchProject({ overrides: { ...project.overrides, [selected]: { ...selectedOverride, value: Number(event.target.value) } } })} /></label><label>{t('mandatoryJustification')}<textarea value={selectedOverride.justification} onChange={(event) => patchProject({ overrides: { ...project.overrides, [selected]: { ...selectedOverride, justification: event.target.value } } })} /></label></>}
                 </div>
               )}
-              <details className="provenance-editor"><summary>Notas e proveniência</summary>
-                <label>Observação<textarea rows={3} value={selectedProvenance.note} onChange={(event) => patchProvenance({ note: event.target.value })} /></label>
-                <label>Responsável<input value={selectedProvenance.responsible} onChange={(event) => patchProvenance({ responsible: event.target.value })} /></label>
-                <label>Data<input type="date" value={selectedProvenance.date} onChange={(event) => patchProvenance({ date: event.target.value })} /></label>
-                <label>URL<input type="url" value={selectedProvenance.url} onChange={(event) => patchProvenance({ url: event.target.value })} /></label>
-                <label>Arquivo ou repositório<input value={selectedProvenance.repositoryRef} onChange={(event) => patchProvenance({ repositoryRef: event.target.value })} /></label>
+              <details className="provenance-editor"><summary>{t('notesAndProvenance')}</summary>
+                <label>{t('observation')}<textarea rows={3} value={selectedProvenance.note} onChange={(event) => patchProvenance({ note: event.target.value })} /></label>
+                <label>{t('responsible')}<input value={selectedProvenance.responsible} onChange={(event) => patchProvenance({ responsible: event.target.value })} /></label>
+                <label>{t('date')}<input type="date" value={selectedProvenance.date} onChange={(event) => patchProvenance({ date: event.target.value })} /></label>
+                <label>{t('url')}<input type="url" value={selectedProvenance.url} onChange={(event) => patchProvenance({ url: event.target.value })} /></label>
+                <label>{t('repositoryOrFile')}<input value={selectedProvenance.repositoryRef} onChange={(event) => patchProvenance({ repositoryRef: event.target.value })} /></label>
               </details>
             </section>
             <section className="validation-panel">
-              <div className="panel-heading"><div><p className="kicker">MOTOR DE REGRAS</p><h2>{t('validation')}</h2></div><span className="issue-count">{issues.filter((item) => item.status !== 'valid').length}</span></div>
-              <div role="status" aria-live="polite" className="sr-only">{issues.length} resultados de validação</div>
+              <div className="panel-heading"><div><p className="kicker">{t('ruleEngine')}</p><h2>{t('validation')}</h2></div><span className="issue-count">{issues.filter((item) => item.status !== 'valid').length}</span></div>
+              <div role="status" aria-live="polite" className="sr-only">{issues.length} {t('validationResults')}</div>
               {issues.map((item) => (
                 <article
                   className={`validation-item ${item.status}`}
@@ -314,11 +523,11 @@ export function BuilderWorkspace() {
       {confirmClear && (
         <div className="modal-backdrop" role="presentation">
           <section className="modal" role="alertdialog" aria-modal="true" aria-labelledby="clear-title">
-            <h2 id="clear-title">Limpar todos os dados?</h2>
-            <p>Contagens, razões de exclusão, fontes, checklist e proveniência deste projeto serão apagados. Título, autores e o modelo do fluxo são mantidos. Você pode desfazer com o botão &quot;Desfazer&quot; logo em seguida.</p>
+            <h2 id="clear-title">{t('clearModalTitle')}</h2>
+            <p>{t('clearModalBody')}</p>
             <div>
-              <button className="secondary-button" type="button" onClick={() => setConfirmClear(false)}>Cancelar</button>
-              <button className="danger-button" type="button" onClick={() => { clearAll(); setConfirmClear(false); }}>Limpar tudo</button>
+              <button className="secondary-button" type="button" onClick={() => setConfirmClear(false)}>{t('cancel')}</button>
+              <button className="danger-button" type="button" onClick={() => { clearAll(); setConfirmClear(false); }}>{t('clearAll')}</button>
             </div>
           </section>
         </div>

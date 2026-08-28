@@ -133,7 +133,7 @@ export async function generatePdf(project: PrismaProject, locale: Locale): Promi
   });
   doc.setFontSize(7);
   doc.setTextColor(80);
-  doc.text('Baseado no PRISMA 2020 · CC BY 4.0 · ferramenta independente', ox, pageHeight - 8);
+  doc.text('Baseado no PRISMA 2020 · CC BY 4.0 · PRISMA Lab | Scientata', ox, pageHeight - 8);
   return doc.output('blob');
 }
 
@@ -161,7 +161,7 @@ export async function generateXlsx(project: PrismaProject): Promise<Blob> {
 export function generateInteractiveHtml(project: PrismaProject, locale: Locale): string {
   const svg = generateSvg(project, locale).replace(/^<\?xml[^>]+>/, '');
   const details = getDiagramNodes(project, locale).map((node) => `<article id="detail-${node.id}"><h2>${html(node.lines[0])}</h2><p>${html(node.lines.slice(1).join(' · '))}</p><p>Origem: ${html(calculateProject(project).origins[node.field])}</p></article>`).join('');
-  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${html(project.title)} — PRISMA Lab</title><style>body{margin:0;font:16px/1.6 system-ui;color:#10233f;background:#f5f1e8}header,main,footer{max-width:1100px;margin:auto;padding:24px}svg{max-width:100%;height:auto;background:white;border:1px solid #bac5d2}article{border-top:1px solid #bac5d2;padding:16px 0}g[role=link]{cursor:pointer}g[role=link]:hover rect{stroke:#c97a16;stroke-width:3}</style></head><body><header><h1>${html(project.title)}</h1><p>Baseado no PRISMA 2020 · ferramenta independente</p></header><main>${svg}<section id="details">${details}</section></main><footer>CC BY 4.0 · Gerado pelo PRISMA Lab</footer><script>document.querySelectorAll('g[role=link]').forEach(function(n){n.addEventListener('click',function(){var d=document.getElementById('detail-'+n.id);if(d)d.scrollIntoView({behavior:'smooth'})})})</script></body></html>`;
+  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${html(project.title)} — PRISMA Lab</title><style>body{margin:0;font:16px/1.6 system-ui;color:#10233f;background:#f5f1e8}header,main,footer{max-width:1100px;margin:auto;padding:24px}svg{max-width:100%;height:auto;background:white;border:1px solid #bac5d2}article{border-top:1px solid #bac5d2;padding:16px 0}g[role=link]{cursor:pointer}g[role=link]:hover rect{stroke:#c97a16;stroke-width:3}</style></head><body><header><h1>${html(project.title)}</h1><p>Baseado no PRISMA 2020 · PRISMA Lab | Scientata</p></header><main>${svg}<section id="details">${details}</section></main><footer>CC BY 4.0 · Gerado pelo PRISMA Lab</footer><script>document.querySelectorAll('g[role=link]').forEach(function(n){n.addEventListener('click',function(){var d=document.getElementById('detail-'+n.id);if(d)d.scrollIntoView({behavior:'smooth'})})})</script></body></html>`;
 }
 
 export function generateReportHtml(project: PrismaProject, locale: Locale): string {
@@ -189,6 +189,6 @@ export async function exportProject(project: PrismaProject, locale: Locale, form
   zip.file(name('html'), generateInteractiveHtml(project, locale));
   zip.file(name('report.html'), generateReportHtml(project, locale));
   zip.file(name('xlsx'), await generateXlsx(project));
-  zip.file('README.txt', `PRISMA Lab\n\nProjeto: ${project.title}\nDiretriz: PRISMA 2020\nFerramenta independente. Templates PRISMA 2020: CC BY 4.0.\nFontes verificadas em 26 ago. 2026.\nhttps://www.prisma-statement.org/prisma-2020\n`);
+  zip.file('README.txt', `PRISMA Lab\n\nProjeto: ${project.title}\nDiretriz: PRISMA 2020\nPRISMA Lab | Scientata. Templates PRISMA 2020: CC BY 4.0.\nFontes verificadas em 26 ago. 2026.\nhttps://www.prisma-statement.org/prisma-2020\n`);
   downloadBlob(await zip.generateAsync({ type: 'blob' }), name('zip'), 'application/zip');
 }

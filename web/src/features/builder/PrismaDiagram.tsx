@@ -11,7 +11,7 @@ interface Props {
   project: PrismaProject;
   locale: Locale;
   selected: CountKey;
-  onSelect: (field: CountKey) => void;
+  onSelect: (field: CountKey, nodeId?: string) => void;
   onSelectStage?: (stage: DiagramStage) => void;
   zoom?: number;
 }
@@ -88,11 +88,11 @@ export function PrismaDiagram({ project, locale, selected, onSelect, onSelectSta
               role="button"
               tabIndex={0}
               aria-label={`${node.lines.join('. ')}. Selecionar para editar detalhes.`}
-              onClick={() => onSelect(node.field)}
+              onClick={() => onSelect(node.field, node.id)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
-                  onSelect(node.field);
+                  onSelect(node.field, node.id);
                 }
               }}
             >

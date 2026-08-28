@@ -41,6 +41,23 @@
 .reasons-editor > div input { padding: .45rem; font-size: .7rem; }
 .reasons-editor > div button { border: 1px solid var(--line); background: transparent; color: var(--red); }
 
+.database-sources-block { display: grid; gap: .6rem; padding: .75rem; margin-top: .3rem; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); }
+.database-sources-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.database-sources-header h4 { margin: 0; font-size: .7rem; font-weight: 700; color: var(--ink); }
+.database-count-badge { font: .6rem var(--font-mono); color: var(--amber); background: color-mix(in srgb, var(--amber) 12%, transparent); padding: .15rem .45rem; border-radius: 3px; }
+.database-chips-container { display: grid; gap: .3rem; }
+.chips-label { font-size: .58rem; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; }
+.database-chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+.database-chip { min-height: 22px; padding: .1rem .45rem; font-size: .62rem; border: 1px solid var(--line); border-radius: 12px; background: var(--paper-2); color: var(--muted); cursor: pointer; transition: all .14s ease; }
+.database-chip:hover { border-color: var(--amber); color: var(--ink); background: color-mix(in srgb, var(--amber) 10%, transparent); }
+.database-items-list { display: grid; gap: .4rem; margin-top: .2rem; }
+.database-item-row { display: grid; grid-template-columns: 1fr 75px 28px; gap: .35rem; align-items: center; }
+.database-item-row input { padding: .4rem .5rem; font-size: .72rem; }
+.database-item-row input[type="number"] { text-align: right; font-family: var(--font-mono); }
+.database-item-row .remove-btn { height: 30px; border: 1px solid var(--line); border-radius: 2px; background: transparent; color: var(--red); font-size: 1rem; cursor: pointer; display: grid; place-items: center; line-height: 1; }
+.database-item-row .remove-btn:hover { background: color-mix(in srgb, var(--red) 12%, transparent); border-color: var(--red); }
+.add-database-btn { font-size: .68rem; margin-top: .2rem; text-align: left; }
+
 .diagram-panel { min-width: 0; overflow: hidden; background: color-mix(in srgb, var(--surface-2) 50%, var(--paper)); }
 .canvas-label { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .55rem .8rem; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--muted); font: .58rem var(--font-mono); letter-spacing: .08em; }
 .canvas-controls { display: flex; align-items: end; gap: .65rem; }

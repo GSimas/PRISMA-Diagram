@@ -10,13 +10,13 @@ export function GlobalHeader() {
   const { ready, locale, setLocale, theme, setTheme, accessibility, setAccessibility, restoreAccessibility, t } = useApp();
   return (
     <>
-      <a className="skip-link" href="#main-content">{locale === 'pt-BR' ? 'Pular para o conteúdo' : 'Skip to content'}</a>
+      <a className="skip-link" href="#main-content">{t('skipToContent')}</a>
       <header className="global-header">
         <Link className="brand" href="/" aria-label="PRISMA Lab">
           <span className="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><rect x="3" y="3" width="18" height="4" rx="1.2" /><rect x="6" y="10" width="12" height="4" rx="1.2" /><rect x="9" y="17" width="6" height="4" rx="1.2" /></svg>
           </span>
-          <span><strong>PRISMA Lab</strong><small>scientific reporting studio</small></span>
+          <span><strong>PRISMA Lab</strong><small>{t('scientataApp')}</small></span>
         </Link>
         <nav className="desktop-nav" aria-label="Navegação principal">
           <a href="/learn">{t('learn')}</a>
@@ -55,6 +55,7 @@ export function GlobalHeader() {
               <button className="text-button" type="button" onClick={restoreAccessibility}>{t('restore')}</button>
             </div>
           </details>
+          <a className="header-scientata-link" href="https://scientata.com" target="_blank" rel="noopener noreferrer" title="Scientata">Scientata</a>
           <a className="header-primary" href="/builder"><Plus size={16} aria-hidden="true" /> <span>{t('newDiagram')}</span></a>
           <details className="mobile-menu">
             <summary aria-label="Menu"><Menu size={20} aria-hidden="true" /></summary>
